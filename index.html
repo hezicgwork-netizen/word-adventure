@@ -53,15 +53,18 @@
             }, [knownWords, wordList]);
 
             const speak = (text) => {
+                if (!text) return;
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
                 window.speechSynthesis.speak(utterance);
             };
 
             const resetAll = () => {
-                setWordList([]);
-                setKnownWords([]);
-                setView('setup');
+                if(confirm("האם אתה בטוח שברצונך לאפס את הכל?")) {
+                    setWordList([]);
+                    setKnownWords([]);
+                    setView('setup');
+                }
             };
 
             return (
@@ -91,7 +94,7 @@
                             <SetupView setWordList={setWordList} onStart={() => setView('learning')} />
                         )}
 
-                        {view === 'learning' && (
+                        {view === 'learning' && wordList.length > 0 && (
                             <LearningView 
                                 wordList={wordList} 
                                 knownWords={knownWords} 
@@ -143,21 +146,45 @@
             const [localList, setLocalList] = useState([]);
 
             const parseBulk = () => {
+                if (!rawText.trim()) return;
                 const lines = rawText.split('\n');
                 const parsed = lines.map(line => {
                     const parts = line.split(/[,\t\-:|]+/).map(p => p.trim());
-                    if (parts.length >= 2) return { english: parts[0], hebrew: parts[1], id: Math.random().toString(36).substr(2, 9) };
+                    if (parts.length >= 2 && parts[0] && parts[1]) {
+                        return { 
+                            english: parts[0], 
+                            hebrew: parts[1], 
+                            id: Math.random().toString(36).substr(2, 9) 
+                        };
+                    }
                     return null;
                 }).filter(Boolean);
-                setLocalList([...localList, ...parsed]);
-                setRawText("");
+                
+                if (parsed.length > 0) {
+                    setLocalList(prev => [...prev, ...parsed]);
+                    setRawText("");
+                }
             };
 
             const addSingle = () => {
-                if(manualEng && manualHeb) {
-                    setLocalList([...localList, { english: manualEng, hebrew: manualHeb, id: Math.random().toString(36).substr(2, 9) }]);
-                    setManualEng(""); setManualHeb("");
+                if(manualEng.trim() && manualHeb.trim()) {
+                    setLocalList(prev => [...prev, { 
+                        english: manualEng.trim(), 
+                        hebrew: manualHeb.trim(), 
+                        id: Math.random().toString(36).substr(2, 9) 
+                    }]);
+                    setManualEng(""); 
+                    setManualHeb("");
                 }
+            };
+
+            const handleStart = () => {
+                if (localList.length === 0) {
+                    alert("יש להזין לפחות מילה אחת");
+                    return;
+                }
+                setWordList(localList);
+                onStart();
             };
 
             return (
@@ -182,7 +209,7 @@
                         {localList.length > 0 && (
                             <div className="pt-4">
                                 <h3 className="font-bold mb-3">רשימת מילים ({localList.length}):</h3>
-                                <div className="max-h-48 overflow-y-auto space-y-2">
+                                <div className="max-h-48 overflow-y-auto space-y-2 mb-4">
                                     {localList.map(item => (
                                         <div key={item.id} className="flex justify-between items-center bg-indigo-50 p-3 rounded-xl">
                                             <span dir="ltr" className="font-bold">{item.english} <span className="text-indigo-300 mx-2">|</span> {item.hebrew}</span>
@@ -192,7 +219,7 @@
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => { setWordList(localList); onStart(); }} className="w-full mt-6 bg-green-500 text-white p-4 rounded-2xl text-xl font-extrabold hover:bg-green-600 shadow-lg shadow-green-100 transition">
+                                <button onClick={handleStart} className="w-full bg-green-500 text-white p-4 rounded-2xl text-xl font-extrabold hover:bg-green-600 shadow-lg shadow-green-100 transition">
                                     התחל ללמוד!
                                 </button>
                             </div>
@@ -207,25 +234,33 @@
             const [idx, setIdx] = useState(0);
             const [flipped, setFlipped] = useState(false);
 
+            // Initialize queue only once or when wordList changes substantially
             useEffect(() => {
                 const unknown = wordList.filter(w => !knownWords.some(k => k.id === w.id));
-                setQueue(unknown.length ? [...unknown].sort(() => Math.random() - 0.5) : []);
-            }, [knownWords, wordList]);
+                if (unknown.length > 0) {
+                    setQueue([...unknown].sort(() => Math.random() - 0.5));
+                    setIdx(0);
+                } else {
+                    setQueue([]);
+                }
+            }, [wordList, knownWords.length === 0]); // Dependency on length 0 to re-init on reset
 
             const handleDecision = (knows) => {
                 const current = queue[idx];
+                if (!current) return;
+
                 if (knows) {
-                    setKnownWords([...knownWords, current]);
+                    setKnownWords(prev => [...prev, current]);
                 } else {
-                    const newQueue = [...queue];
-                    newQueue.push(current); // Add back to end
-                    setQueue(newQueue);
+                    // Add to the end of the current local queue
+                    setQueue(prev => [...prev, current]);
                 }
+                
                 setFlipped(false);
-                setTimeout(() => setIdx(idx + 1), 150);
+                setIdx(prev => prev + 1);
             };
 
-            if (!queue.length || idx >= queue.length) {
+            if (queue.length === 0 || idx >= queue.length) {
                 return (
                     <div className="bg-white p-10 rounded-3xl shadow-xl text-center border border-gray-100">
                         <Icon name="party-popper" size={64} className="mx-auto text-yellow-500 mb-4" />
@@ -247,7 +282,7 @@
                             {/* Front */}
                             <div className="absolute inset-0 bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center border-4 border-indigo-500 backface-hidden">
                                 <span className="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-4">English</span>
-                                <h3 className="text-5xl font-black text-indigo-950">{current.english}</h3>
+                                <h3 className="text-4xl md:text-5xl font-black text-indigo-950 px-4 text-center">{current.english}</h3>
                                 <button onClick={(e) => { e.stopPropagation(); speak(current.english); }} className="mt-6 p-4 bg-indigo-50 text-indigo-600 rounded-full hover:scale-110 transition">
                                     <Icon name="volume-2" size={32} />
                                 </button>
@@ -256,15 +291,15 @@
                             {/* Back */}
                             <div className="absolute inset-0 bg-indigo-600 rounded-3xl shadow-2xl flex flex-col items-center justify-center border-4 border-white backface-hidden rotate-y-180">
                                 <span className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-4">עברית</span>
-                                <h3 className="text-5xl font-black text-white">{current.hebrew}</h3>
+                                <h3 className="text-4xl md:text-5xl font-black text-white px-4 text-center">{current.hebrew}</h3>
                                 <p className="mt-8 text-indigo-300 text-sm">לחץ להיפוך</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-12 grid grid-cols-2 gap-6 w-full max-w-sm">
-                        <button onClick={() => handleDecision(false)} className="bg-white border-2 border-red-500 text-red-500 p-4 rounded-2xl font-extrabold hover:bg-red-50 transition">עדיין לא יודע</button>
-                        <button onClick={() => handleDecision(true)} className="bg-green-500 text-white p-4 rounded-2xl font-extrabold shadow-lg hover:bg-green-600 transition">יודע מצוין!</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDecision(false); }} className="bg-white border-2 border-red-500 text-red-500 p-4 rounded-2xl font-extrabold hover:bg-red-50 transition">עדיין לא יודע</button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDecision(true); }} className="bg-green-500 text-white p-4 rounded-2xl font-extrabold shadow-lg hover:bg-green-600 transition">יודע מצוין!</button>
                     </div>
                 </div>
             );
@@ -293,15 +328,16 @@
                 if (next.length === 2) {
                     setDisabled(true);
                     if (next[0].matchId === next[1].matchId) {
-                        setMatched([...matched, next[0].matchId]);
-                        setFlipped([]); setDisabled(false);
+                        setMatched(prev => [...prev, next[0].matchId]);
+                        setFlipped([]); 
+                        setDisabled(false);
                     } else {
                         setTimeout(() => { setFlipped([]); setDisabled(false); }, 1000);
                     }
                 }
             };
 
-            const win = matched.length === cards.length / 2 && cards.length > 0;
+            const win = matched.length === (cards.length / 2) && cards.length > 0;
 
             return (
                 <div className="bg-white p-6 rounded-3xl shadow-xl">
@@ -320,7 +356,7 @@
                             {cards.map(c => {
                                 const show = flipped.some(f => f.id === c.id) || matched.includes(c.matchId);
                                 return (
-                                    <div key={c.id} onClick={() => click(c)} className={`aspect-square flex items-center justify-center rounded-xl font-bold text-sm md:text-base p-2 text-center transition-all ${show ? 'bg-purple-100 text-purple-700 border-2 border-purple-500' : 'bg-purple-600 text-white cursor-pointer hover:bg-purple-700'}`}>
+                                    <div key={c.id} onClick={() => click(c)} className={`aspect-square flex items-center justify-center rounded-xl font-bold text-xs md:text-sm p-2 text-center transition-all ${show ? 'bg-purple-100 text-purple-700 border-2 border-purple-500' : 'bg-purple-600 text-white cursor-pointer hover:bg-purple-700'}`}>
                                         {show ? c.content : '?'}
                                     </div>
                                 );
@@ -339,6 +375,7 @@
             const [opts, setOpts] = useState([]);
 
             const next = useCallback(() => {
+                if (!words.length) return;
                 const correct = words[Math.floor(Math.random() * words.length)];
                 const others = words.filter(w => w.id !== correct.id).sort(() => 0.5 - Math.random()).slice(0, 3);
                 setQuest(correct);
@@ -353,8 +390,11 @@
             }, [active, timeLeft]);
 
             const ans = (w) => {
-                if (w.id === quest.id) { setScore(score + 1); speak(w.english); next(); }
-                else next();
+                if (w.id === quest.id) { 
+                    setScore(prev => prev + 1); 
+                    speak(w.english); 
+                }
+                next();
             };
 
             return (
@@ -368,7 +408,7 @@
                         <button onClick={() => { setActive(true); next(); }} className="bg-orange-500 text-white p-6 rounded-2xl text-2xl font-black">התחל משחק!</button>
                     ) : active && quest ? (
                         <div className="w-full max-w-xs">
-                            <div className="text-center py-10 bg-orange-50 rounded-2xl border-4 border-orange-200 mb-6 font-black text-3xl" dir="ltr">{quest.english}</div>
+                            <div className="text-center py-10 bg-orange-50 rounded-2xl border-4 border-orange-200 mb-6 font-black text-3xl px-2" dir="ltr">{quest.english}</div>
                             <div className="grid grid-cols-1 gap-3">
                                 {opts.map(o => (
                                     <button key={o.id} onClick={() => ans(o)} className="bg-white border-2 border-gray-100 p-4 rounded-xl font-bold hover:bg-orange-50 hover:border-orange-500 transition">{o.hebrew}</button>
@@ -379,7 +419,7 @@
                         <div className="text-center">
                             <h3 className="text-2xl font-bold mb-4">נגמר הזמן!</h3>
                             <p className="text-4xl font-black text-indigo-600 mb-6">{score} נקודות</p>
-                            <button onClick={() => { setTimeLeft(30); setScore(0); }} className="bg-indigo-600 text-white px-8 py-2 rounded-xl">נסה שוב</button>
+                            <button onClick={() => { setTimeLeft(30); setScore(0); setActive(true); next(); }} className="bg-indigo-600 text-white px-8 py-2 rounded-xl">נסה שוב</button>
                         </div>
                     )}
                 </div>
@@ -393,7 +433,7 @@
                 </div>
                 <h3 className="text-xl font-bold mb-1">{title}</h3>
                 <p className="text-gray-500 text-sm mb-4">{desc}</p>
-                {!enabled && <span className="absolute top-4 left-4 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full">נעול</span>}
+                {!enabled && <span className="absolute top-4 left-4 text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-full">נעול (דרוש 70%)</span>}
                 {enabled && <div className="text-indigo-600 font-bold flex items-center">שחק עכשיו <Icon name="chevron-left" size={16} /></div>}
             </div>
         );

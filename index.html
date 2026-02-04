@@ -1,371 +1,585 @@
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>לומדים אנגלית בכיף</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Assistant', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .tab-inactive { color: #94a3b8; border-bottom: 4px solid transparent; opacity: 0.6; }
-        .tab-active { border-bottom: 4px solid currentColor; opacity: 1; }
-        .hidden { display: none !important; }
-        .perspective-1000 { perspective: 1000px; }
-        .card-inner { transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; position: relative; width: 100%; height: 100%; }
-        .card-flipped .card-inner { transform: rotateY(180deg); }
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 1.5rem; }
-        .card-back { transform: rotateY(180deg); }
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Plus, 
+  Trash2, 
+  Volume2, 
+  CheckCircle2, 
+  XCircle, 
+  Brain, 
+  Gamepad2, 
+  Play, 
+  RotateCcw,
+  BookOpen,
+  Trophy,
+  History
+} from 'lucide-react';
+
+// --- Components ---
+
+const App = () => {
+  const [view, setView] = useState('setup'); // setup, learning, game-select, memory-game, speed-game
+  const [wordList, setWordList] = useState([]);
+  const [knownWords, setKnownWords] = useState([]);
+  const [masteryLevel, setMasteryLevel] = useState(0);
+
+  // Persistence of Mastery
+  useEffect(() => {
+    if (wordList.length > 0) {
+      const percentage = (knownWords.length / wordList.length) * 100;
+      setMasteryLevel(percentage);
+    } else {
+      setMasteryLevel(0);
+    }
+  }, [knownWords, wordList]);
+
+  const speak = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const resetProgress = () => {
+    setKnownWords([]);
+    setView('setup');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans p-4 md:p-8 flex flex-col items-center" dir="rtl">
+      <header className="max-w-4xl w-full mb-8 text-center">
+        <h1 className="text-4xl font-bold text-blue-600 mb-2">EnglishMaster</h1>
+        <p className="text-gray-600">הקנייה, תרגול ומשחק באנגלית</p>
         
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        .shake { animation: shake 0.2s ease-in-out 0s 2; }
-    </style>
-</head>
-<body class="bg-slate-50 min-h-screen">
+        {wordList.length > 0 && (
+          <div className="mt-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">רמת שליטה: {Math.round(masteryLevel)}%</span>
+              <span className="text-sm text-gray-500">{knownWords.length} מתוך {wordList.length} מילים</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className={`h-2.5 rounded-full transition-all duration-500 ${masteryLevel >= 70 ? 'bg-green-500' : 'bg-blue-500'}`} 
+                style={{ width: `${masteryLevel}%` }}
+              ></div>
+            </div>
+            {masteryLevel < 70 && view.startsWith('game') && (
+              <p className="text-red-500 text-xs mt-2 italic">יש להגיע ל-70% שליטה כדי לשחק</p>
+            )}
+          </div>
+        )}
+      </header>
 
-    <!-- Custom Modal Overlay -->
-    <div id="custom-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-xs rounded-3xl shadow-2xl p-6 text-center transform transition-all scale-100">
-            <div id="modal-icon" class="text-5xl mb-4"></div>
-            <h2 id="modal-title" class="text-2xl font-black text-slate-800 mb-2"></h2>
-            <p id="modal-body" class="text-slate-600 mb-6"></p>
-            <button id="modal-btn" class="w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-transform active:scale-95"></button>
+      <main className="max-w-4xl w-full">
+        {view === 'setup' && (
+          <SetupView setWordList={setWordList} onStart={() => setView('learning')} />
+        )}
+
+        {view === 'learning' && (
+          <LearningView 
+            wordList={wordList} 
+            knownWords={knownWords} 
+            setKnownWords={setKnownWords} 
+            speak={speak}
+            onFinish={() => setView('game-select')}
+          />
+        )}
+
+        {view === 'game-select' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <GameCard 
+              title="משחק הזיכרון" 
+              desc="מצא זוגות של מילה ותרגומה" 
+              icon={<Brain className="w-10 h-10" />}
+              enabled={masteryLevel >= 70}
+              onClick={() => setView('memory-game')}
+            />
+            <GameCard 
+              title="מרוץ נגד הזמן" 
+              desc="זהה כמה שיותר מילים ב-30 שניות" 
+              icon={<History className="w-10 h-10" />}
+              enabled={masteryLevel >= 70}
+              onClick={() => setView('speed-game')}
+            />
+            <button 
+              onClick={() => setView('learning')}
+              className="md:col-span-2 flex items-center justify-center p-4 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition"
+            >
+              <RotateCcw className="ml-2 w-5 h-5" /> חזרה לתרגול נוסף
+            </button>
+          </div>
+        )}
+
+        {view === 'memory-game' && <MemoryGame words={wordList} onBack={() => setView('game-select')} />}
+        {view === 'speed-game' && <SpeedGame words={wordList} onBack={() => setView('game-select')} speak={speak} />}
+      </main>
+
+      {view !== 'setup' && (
+        <button 
+          onClick={resetProgress}
+          className="mt-8 text-sm text-gray-400 hover:text-red-500 transition"
+        >
+          איפוס הכל וחזרה לתפריט ראשי
+        </button>
+      )}
+    </div>
+  );
+};
+
+// --- View: Setup ---
+
+const SetupView = ({ setWordList, onStart }) => {
+  const [rawText, setRawText] = useState("");
+  const [manualEng, setManualEng] = useState("");
+  const [manualHeb, setManualHeb] = useState("");
+  const [localList, setLocalList] = useState([]);
+
+  const parseText = () => {
+    if (!rawText.trim()) return;
+    // Regex matches common separators like tab, hyphen, colon, or multiple spaces
+    const lines = rawText.split('\n');
+    const newWords = lines.map(line => {
+      const parts = line.split(/[,\t\-:|]+/).map(p => p.trim());
+      if (parts.length >= 2) {
+        return { english: parts[0], hebrew: parts[1], id: Math.random().toString(36).substr(2, 9) };
+      }
+      return null;
+    }).filter(w => w !== null);
+    
+    setLocalList([...localList, ...newWords]);
+    setRawText("");
+  };
+
+  const addManual = () => {
+    if (manualEng && manualHeb) {
+      setLocalList([...localList, { english: manualEng, hebrew: manualHeb, id: Math.random().toString(36).substr(2, 9) }]);
+      setManualEng("");
+      setManualHeb("");
+    }
+  };
+
+  const removeItem = (id) => {
+    setLocalList(localList.filter(item => item.id !== id));
+  };
+
+  const handleStart = () => {
+    if (localList.length < 4) {
+      alert("יש להזין לפחות 4 מילים כדי להתחיל");
+      return;
+    }
+    setWordList(localList);
+    onStart();
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
+      <h2 className="text-2xl font-semibold mb-6">הזנת מילים</h2>
+      
+      <div className="space-y-6">
+        {/* Manual Input */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium mb-1">אנגלית</label>
+            <input 
+              value={manualEng} 
+              onChange={e => setManualEng(e.target.value)}
+              className="w-full border p-2 rounded-lg" 
+              placeholder="Apple"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">עברית</label>
+            <input 
+              value={manualHeb} 
+              onChange={e => setManualHeb(e.target.value)}
+              className="w-full border p-2 rounded-lg" 
+              placeholder="תפוח"
+            />
+          </div>
+          <button onClick={addManual} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 flex items-center justify-center">
+            <Plus className="ml-2 w-5 h-5" /> הוסף מילה
+          </button>
         </div>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-2 text-sm text-gray-500 font-bold">או הדבקה מרובה</span>
+          </div>
+        </div>
+
+        {/* Bulk Input */}
+        <div>
+          <label className="block text-sm font-medium mb-1">הדבק רשימה (מילה אנגלית - מילה עברית בכל שורה)</label>
+          <textarea 
+            value={rawText}
+            onChange={e => setRawText(e.target.value)}
+            className="w-full border p-3 rounded-lg h-32 text-left" 
+            dir="ltr"
+            placeholder="Dog - כלב&#10;Cat - חתול&#10;House - בית"
+          />
+          <button onClick={parseText} className="mt-2 w-full bg-gray-100 text-gray-700 p-2 rounded-lg hover:bg-gray-200 font-medium">
+            זהה והוסף לרשימה
+          </button>
+        </div>
+
+        {/* List Preview */}
+        {localList.length > 0 && (
+          <div className="border-t pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">רשימת המילים שלך ({localList.length})</h3>
+            </div>
+            <div className="max-h-60 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-1">
+              {localList.map(item => (
+                <div key={item.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <span className="font-medium" dir="ltr">{item.english} = {item.hebrew}</span>
+                  <button onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button 
+              onClick={handleStart}
+              className="mt-6 w-full bg-green-600 text-white p-4 rounded-xl text-xl font-bold hover:bg-green-700 transition shadow-lg"
+            >
+              בואו נתחיל ללמוד!
+            </button>
+          </div>
+        )}
+      </div>
     </div>
+  );
+};
 
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-xl flex flex-col relative">
-        <!-- Header -->
-        <header class="bg-white pt-6 pb-2 sticky top-0 z-20 border-b border-slate-100 text-center">
-            <h1 class="text-2xl font-black text-slate-800 mb-4">לומדים אנגלית בכיף</h1>
-            <nav class="flex justify-around items-center">
-                <button onclick="switchView('setup')" id="nav-setup" class="flex flex-col items-center flex-1 py-2 tab-active text-rose-500">
-                    <span class="text-xs font-bold">ניהול</span>
-                </button>
-                <button onclick="switchView('cards')" id="nav-cards" class="flex flex-col items-center flex-1 py-2 tab-inactive text-blue-500 pointer-events-none opacity-20">
-                    <span class="text-xs font-bold">הקנייה</span>
-                </button>
-                <button onclick="switchView('practice')" id="nav-practice" class="flex flex-col items-center flex-1 py-2 tab-inactive text-indigo-600 pointer-events-none opacity-20">
-                    <span class="text-xs font-bold">תרגול</span>
-                </button>
-                <button onclick="switchView('game')" id="nav-game" class="flex flex-col items-center flex-1 py-2 tab-inactive text-amber-500 pointer-events-none opacity-20">
-                    <span class="text-xs font-bold">משחק</span>
-                </button>
-            </nav>
-        </header>
+// --- View: Learning (Flashcards) ---
 
-        <!-- Main Content -->
-        <main class="flex-1 p-4 overflow-y-auto">
-            
-            <!-- Setup View -->
-            <section id="view-setup" class="space-y-6">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-rose-100">
-                    <h2 class="text-lg font-bold mb-3 border-r-4 border-rose-500 pr-2 text-slate-700">הוספת מילים</h2>
-                    <div class="space-y-3">
-                        <input type="text" id="input-hebrew" placeholder="עברית (תפוח)" class="w-full p-4 border-2 rounded-2xl text-center focus:border-rose-500 outline-none transition-colors">
-                        <input type="text" id="input-english" placeholder="English (Apple)" dir="ltr" class="w-full p-4 border-2 rounded-2xl text-center focus:border-rose-500 outline-none transition-colors">
-                        <button onclick="addWord()" class="w-full bg-rose-500 text-white font-bold py-4 rounded-2xl shadow-md active:scale-95 transition-all">הוסף לרשימה</button>
-                    </div>
-                </div>
-                <div id="words-list" class="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm"></div>
-                <div id="start-learning-btn" class="hidden text-center p-4">
-                    <button onclick="switchView('cards')" class="bg-blue-600 text-white px-10 py-4 rounded-full font-bold shadow-xl animate-bounce text-lg">התחל ללמוד</button>
-                </div>
-            </section>
+const LearningView = ({ wordList, knownWords, setKnownWords, speak, onFinish }) => {
+  const [queue, setQueue] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
 
-            <!-- Cards View -->
-            <section id="view-cards" class="hidden text-center space-y-4">
-                <div class="flex justify-between items-center px-2">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">התקדמות</span>
-                    <span id="progress-text" class="text-xs font-bold text-blue-600">0/0</span>
-                </div>
-                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
-                    <div id="progress-bar" class="h-full bg-blue-500 w-0 transition-all duration-500"></div>
-                </div>
+  // Initialize queue with unknown words
+  useEffect(() => {
+    const unknown = wordList.filter(w => !knownWords.some(k => k.id === w.id));
+    if (unknown.length === 0) {
+      setQueue([]);
+    } else {
+      // Shuffle the unknown words
+      setQueue([...unknown].sort(() => Math.random() - 0.5));
+    }
+  }, [knownWords, wordList]);
 
-                <div id="card-container" class="w-full aspect-[3/4] relative perspective-1000">
-                    <div class="card-inner" onclick="this.parentElement.classList.toggle('card-flipped')">
-                        <div class="card-face bg-white border-2 border-blue-50 shadow-xl p-8">
-                            <button onclick="event.stopPropagation(); speakText(words[currentIdx].eng);" class="bg-blue-50 p-6 rounded-full mb-6 text-3xl hover:bg-blue-100 transition-colors">🔊</button>
-                            <h2 id="card-english" class="text-4xl font-black text-blue-900" dir="ltr"></h2>
-                            <p class="mt-6 text-sm text-slate-300 font-medium">לחץ כדי לראות תרגום</p>
-                        </div>
-                        <div class="card-face card-back bg-blue-600 text-white shadow-xl p-8">
-                            <h2 id="card-hebrew" class="text-4xl font-black"></h2>
-                            <p class="mt-6 text-blue-200 text-sm">הבנת את המילה?</p>
-                        </div>
-                    </div>
-                </div>
+  const handleKnowledge = (knows) => {
+    const currentWord = queue[currentIndex];
+    
+    if (knows) {
+      setKnownWords([...knownWords, currentWord]);
+    } else {
+      // Re-shuffle current word back into queue at a random later position
+      const newQueue = [...queue];
+      const remainingItems = newQueue.length - currentIndex - 1;
+      if (remainingItems > 0) {
+        const insertAt = currentIndex + 1 + Math.floor(Math.random() * remainingItems);
+        newQueue.splice(insertAt, 0, currentWord);
+        setQueue(newQueue);
+      } else {
+        // Just add it to the end if nothing left
+        setQueue([...newQueue, currentWord]);
+      }
+    }
 
-                <div class="grid grid-cols-2 gap-4 mt-8">
-                    <button onclick="markAsKnown(false)" class="bg-white border-2 border-slate-200 text-slate-500 py-4 rounded-2xl font-bold active:bg-slate-50 transition-colors">עוד לא</button>
-                    <button onclick="markAsKnown(true)" class="bg-green-500 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">יודע!</button>
-                </div>
-                
-                <div class="flex justify-center items-center gap-10 text-slate-300 mt-4">
-                    <button onclick="moveCard(-1)" class="p-2 text-2xl active:text-blue-500">⬅️</button>
-                    <span id="card-index" class="font-bold text-sm">1/1</span>
-                    <button onclick="moveCard(1)" class="p-2 text-2xl active:text-blue-500">➡️</button>
-                </div>
-            </section>
+    setFlipped(false);
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
+    }, 150);
+  };
 
-            <!-- Practice View -->
-            <section id="view-practice" class="hidden text-center space-y-6">
-                <div class="bg-indigo-50 p-3 rounded-xl text-indigo-700 font-bold text-sm" id="practice-status">בחר את התרגום הנכון:</div>
-                <div class="bg-white p-10 rounded-3xl shadow-sm border-b-8 border-indigo-100 relative">
-                    <button id="practice-speaker" class="bg-indigo-50 p-3 rounded-full mb-4 text-indigo-600 text-xl">🔊</button>
-                    <h2 id="practice-target" class="text-4xl font-black text-slate-800" dir="ltr"></h2>
-                </div>
-                <div id="practice-options" class="grid grid-cols-1 gap-3 mt-4"></div>
-            </section>
+  if (queue.length === 0 || currentIndex >= queue.length) {
+    return (
+      <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+          <Trophy className="w-10 h-10 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">כל הכבוד!</h2>
+        <p className="text-gray-600 mb-6">עברת על כל המילים בסבב הנוכחי.</p>
+        <div className="flex flex-col gap-3">
+          <button onClick={() => { setCurrentIndex(0); setFlipped(false); }} className="p-3 bg-blue-600 text-white rounded-xl font-bold">חזרה על המילים שוב</button>
+          <button onClick={onFinish} className="p-3 border border-gray-300 rounded-xl font-bold hover:bg-gray-50">מעבר למשחקים</button>
+        </div>
+      </div>
+    );
+  }
 
-            <!-- Game View -->
-            <section id="view-game" class="hidden text-center space-y-4">
-                <div class="flex justify-between items-center px-2 mb-2">
-                    <div class="flex items-center gap-2 bg-amber-100 px-4 py-2 rounded-2xl">
-                        <span class="text-amber-600">⏱️</span>
-                        <span id="game-timer" class="font-black text-amber-700 w-6">30</span>
-                    </div>
-                    <div class="flex items-center gap-2 bg-emerald-100 px-4 py-2 rounded-2xl">
-                        <span class="text-emerald-600">⭐</span>
-                        <span id="game-score" class="font-black text-emerald-700">0</span>
-                    </div>
-                </div>
-                <div id="game-box" class="bg-amber-500 p-12 rounded-3xl shadow-lg text-white transition-all">
-                    <h2 id="game-target" class="text-5xl font-black tracking-wide" dir="ltr">?</h2>
-                </div>
-                <div id="game-options" class="grid grid-cols-2 gap-3 mt-4"></div>
-            </section>
+  const currentWord = queue[currentIndex];
 
-        </main>
+  return (
+    <div className="flex flex-col items-center">
+      <div className="mb-4 text-gray-500 font-medium">
+        נשארו עוד {queue.length - currentIndex} מילים לסבב זה
+      </div>
+
+      <div 
+        className={`relative w-full max-w-sm aspect-[4/3] cursor-pointer transition-transform duration-500 preserve-3d ${flipped ? 'rotate-y-180' : ''}`}
+        onClick={() => setFlipped(!flipped)}
+      >
+        {/* Front */}
+        <div className={`absolute inset-0 bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center border-4 border-blue-500 backface-hidden ${flipped ? 'invisible' : 'visible'}`}>
+           <span className="text-sm text-blue-400 mb-2 uppercase tracking-widest font-bold">אנגלית</span>
+           <h3 className="text-5xl font-black text-blue-900 mb-4">{currentWord.english}</h3>
+           <button 
+             onClick={(e) => { e.stopPropagation(); speak(currentWord.english); }}
+             className="p-3 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100"
+           >
+             <Volume2 size={32} />
+           </button>
+           <p className="mt-6 text-gray-400 text-sm">לחץ להיפוך</p>
+        </div>
+
+        {/* Back */}
+        <div className={`absolute inset-0 bg-blue-600 rounded-3xl shadow-2xl flex flex-col items-center justify-center border-4 border-white backface-hidden transform rotate-y-180 ${flipped ? 'visible' : 'invisible'}`}>
+           <span className="text-sm text-blue-200 mb-2 uppercase tracking-widest font-bold">עברית</span>
+           <h3 className="text-5xl font-black text-white">{currentWord.hebrew}</h3>
+           <p className="mt-8 text-blue-100 text-sm opacity-70">לחץ להיפוך</p>
+        </div>
+      </div>
+
+      <div className="mt-12 flex gap-6 w-full max-w-sm">
+        <button 
+          onClick={() => handleKnowledge(false)}
+          className="flex-1 bg-white border-2 border-red-500 text-red-500 py-4 rounded-2xl font-bold flex items-center justify-center hover:bg-red-50 transition"
+        >
+          <XCircle className="ml-2" /> עדיין לא יודע
+        </button>
+        <button 
+          onClick={() => handleKnowledge(true)}
+          className="flex-1 bg-green-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center hover:bg-green-600 shadow-lg transition"
+        >
+          <CheckCircle2 className="ml-2" /> יודע מצוין
+        </button>
+      </div>
+
+      <style>{`
+        .preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+      `}</style>
     </div>
+  );
+};
 
-    <script>
-        let words = [];
-        let knownWordsIds = new Set();
-        let currentIdx = 0;
-        let practiceIdx = 0;
-        let gameScore = 0;
-        let timeLeft = 30;
-        let gameInterval;
+// --- Game: Memory ---
 
-        // --- UI HELPERS ---
-        function showModal(icon, title, body, btnText, btnClass, callback) {
-            document.getElementById('modal-icon').textContent = icon;
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-body').textContent = body;
-            const btn = document.getElementById('modal-btn');
-            btn.textContent = btnText;
-            btn.className = `w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-transform active:scale-95 ${btnClass}`;
-            btn.onclick = () => {
-                document.getElementById('custom-modal').classList.add('hidden');
-                if(callback) callback();
-            };
-            document.getElementById('custom-modal').classList.remove('hidden');
-        }
+const MemoryGame = ({ words, onBack }) => {
+  const [cards, setCards] = useState([]);
+  const [flipped, setFlipped] = useState([]);
+  const [matched, setMatched] = useState([]);
+  const [disabled, setDisabled] = useState(false);
 
-        function addWord() {
-            const heb = document.getElementById('input-hebrew').value.trim();
-            const eng = document.getElementById('input-english').value.trim();
-            if (heb && eng) {
-                words.push({ heb, eng, id: Date.now().toString() });
-                document.getElementById('input-hebrew').value = '';
-                document.getElementById('input-english').value = '';
-                renderWords();
-                updateNavState();
-            }
-        }
+  useEffect(() => {
+    // Select 6 words for a 12-card grid (adjust as needed based on screen size)
+    const gameWords = [...words].sort(() => 0.5 - Math.random()).slice(0, 8);
+    const cardSet = [];
+    gameWords.forEach(w => {
+      cardSet.push({ content: w.english, type: 'english', matchId: w.id, id: `eng-${w.id}` });
+      cardSet.push({ content: w.hebrew, type: 'hebrew', matchId: w.id, id: `heb-${w.id}` });
+    });
+    setCards(cardSet.sort(() => Math.random() - 0.5));
+  }, [words]);
 
-        function renderWords() {
-            const list = document.getElementById('words-list');
-            list.innerHTML = words.map(w => `
-                <div class="flex justify-between items-center p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
-                    <div class="flex flex-col text-right">
-                        <span class="font-bold text-slate-800">${w.heb}</span>
-                        <span class="text-rose-500 font-bold text-sm" dir="ltr">${w.eng}</span>
-                    </div>
-                    <button onclick="removeWord('${w.id}')" class="text-slate-200 hover:text-rose-300 p-2">🗑️</button>
-                </div>
-            `).join('');
-            document.getElementById('start-learning-btn').classList.toggle('hidden', words.length < 3);
-        }
+  const handleFlip = (card) => {
+    if (disabled || flipped.some(f => f.id === card.id) || matched.includes(card.matchId)) return;
+    
+    const newFlipped = [...flipped, card];
+    setFlipped(newFlipped);
 
-        function removeWord(id) {
-            words = words.filter(w => w.id !== id);
-            knownWordsIds.delete(id);
-            renderWords();
-            updateNavState();
-        }
+    if (newFlipped.length === 2) {
+      setDisabled(true);
+      if (newFlipped[0].matchId === newFlipped[1].matchId) {
+        setMatched([...matched, newFlipped[0].matchId]);
+        setFlipped([]);
+        setDisabled(false);
+      } else {
+        setTimeout(() => {
+          setFlipped([]);
+          setDisabled(false);
+        }, 1000);
+      }
+    }
+  };
 
-        function updateNavState() {
-            const canLearn = words.length > 0;
-            const canPractice = words.length >= 3 && knownWordsIds.size === words.length;
-            toggleNav('nav-cards', canLearn);
-            toggleNav('nav-practice', canPractice);
-            toggleNav('nav-game', canPractice);
-        }
+  const isGameWon = matched.length === cards.length / 2 && cards.length > 0;
 
-        function toggleNav(id, enabled) {
-            const el = document.getElementById(id);
-            if (enabled) el.classList.remove('pointer-events-none', 'opacity-20');
-            else el.classList.add('pointer-events-none', 'opacity-20');
-        }
+  return (
+    <div className="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-purple-600">משחק הזיכרון</h2>
+        <button onClick={onBack} className="text-gray-500 hover:text-gray-800 underline">יציאה</button>
+      </div>
 
-        function switchView(viewName) {
-            clearInterval(gameInterval);
-            ['setup', 'cards', 'practice', 'game'].forEach(v => {
-                document.getElementById('view-' + v).classList.add('hidden');
-                document.getElementById('nav-' + v).classList.replace('tab-active', 'tab-inactive');
-            });
-            document.getElementById('view-' + viewName).classList.remove('hidden');
-            document.getElementById('nav-' + viewName).classList.replace('tab-inactive', 'tab-active');
+      {isGameWon ? (
+        <div className="text-center py-10">
+          <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-3xl font-black mb-4">ניצחת!</h3>
+          <button onClick={() => window.location.reload()} className="bg-purple-600 text-white px-8 py-3 rounded-full font-bold">שחק שוב</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-3 sm:gap-4">
+          {cards.map(card => {
+            const isSelected = flipped.some(f => f.id === card.id);
+            const isMatched = matched.includes(card.matchId);
+            return (
+              <div 
+                key={card.id}
+                onClick={() => handleFlip(card)}
+                className={`aspect-square cursor-pointer rounded-xl flex items-center justify-center text-center p-2 text-sm sm:text-base font-bold transition-all duration-300 transform 
+                  ${isSelected || isMatched ? 'bg-purple-100 text-purple-900 border-2 border-purple-500' : 'bg-purple-600 text-white'}`}
+              >
+                {(isSelected || isMatched) ? card.content : '?'}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
-            if (viewName === 'cards') initCards();
-            if (viewName === 'practice') initPractice();
-            if (viewName === 'game') startGame();
-        }
+// --- Game: Speed Challenge ---
 
-        function initCards() {
-            currentIdx = 0;
-            updateCardUI();
-        }
+const SpeedGame = ({ words, onBack, speak }) => {
+  const [active, setActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [score, setScore] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [options, setOptions] = useState([]);
+  const [feedback, setFeedback] = useState(null); // 'correct' or 'wrong'
 
-        function updateCardUI() {
-            const word = words[currentIdx];
-            document.getElementById('card-container').classList.remove('card-flipped');
-            document.getElementById('card-english').textContent = word.eng;
-            document.getElementById('card-hebrew').textContent = word.heb;
-            document.getElementById('card-index').textContent = `${currentIdx + 1} / ${words.length}`;
-            const progress = (knownWordsIds.size / words.length) * 100;
-            document.getElementById('progress-bar').style.width = progress + '%';
-            document.getElementById('progress-text').textContent = `${knownWordsIds.size}/${words.length}`;
-        }
+  const generateQuestion = useCallback(() => {
+    const correct = words[Math.floor(Math.random() * words.length)];
+    let distractorSet = words.filter(w => w.id !== correct.id);
+    let wrongChoices = distractorSet.sort(() => 0.5 - Math.random()).slice(0, 3);
+    
+    let allOptions = [...wrongChoices, correct].sort(() => 0.5 - Math.random());
+    setCurrentQuestion(correct);
+    setOptions(allOptions);
+    setFeedback(null);
+  }, [words]);
 
-        function markAsKnown(known) {
-            if (known) knownWordsIds.add(words[currentIdx].id);
-            else knownWordsIds.delete(words[currentIdx].id);
-            updateNavState();
-            
-            if (knownWordsIds.size === words.length) {
-                showModal('⭐', 'כל הכבוד!', 'סיימת להכיר את כל המילים. מוכן לבדוק את עצמך בתרגול?', 'קדימה לתרגול', 'bg-indigo-600', () => switchView('practice'));
-            } else {
-                moveCard(1);
-            }
-        }
+  const startGame = () => {
+    setScore(0);
+    setTimeLeft(30);
+    setActive(true);
+    generateQuestion();
+  };
 
-        function moveCard(dir) {
-            currentIdx = (currentIdx + dir + words.length) % words.length;
-            updateCardUI();
-        }
+  useEffect(() => {
+    let timer;
+    if (active && timeLeft > 0) {
+      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    } else if (timeLeft === 0) {
+      setActive(false);
+    }
+    return () => clearInterval(timer);
+  }, [active, timeLeft]);
 
-        // --- PRACTICE ---
-        function initPractice() {
-            practiceIdx = 0;
-            updatePracticeQuestion();
-        }
+  const handleAnswer = (word) => {
+    if (!active || feedback) return;
 
-        function updatePracticeQuestion() {
-            const target = words[practiceIdx];
-            document.getElementById('practice-target').textContent = target.eng;
-            document.getElementById('practice-speaker').onclick = () => speakText(target.eng);
-            speakText(target.eng);
+    if (word.id === currentQuestion.id) {
+      setScore(score + 1);
+      setFeedback('correct');
+      speak(word.english);
+      setTimeout(generateQuestion, 400);
+    } else {
+      setFeedback('wrong');
+      setTimeout(generateQuestion, 400);
+    }
+  };
 
-            let options = [target.heb];
-            let others = words.filter(w => w.id !== target.id).map(w => w.heb);
-            while(options.length < Math.min(4, words.length)) {
-                let r = others[Math.floor(Math.random() * others.length)];
-                if(!options.includes(r)) options.push(r);
-            }
-            options.sort(() => Math.random() - 0.5);
+  return (
+    <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center">
+      <div className="w-full flex justify-between items-center mb-8">
+        <div className="flex flex-col">
+          <span className="text-gray-400 text-sm">זמן נותר</span>
+          <span className={`text-2xl font-black ${timeLeft < 10 ? 'text-red-500 animate-pulse' : ''}`}>{timeLeft}ש'</span>
+        </div>
+        <h2 className="text-2xl font-bold text-orange-500">מרוץ המילים</h2>
+        <div className="flex flex-col items-end">
+          <span className="text-gray-400 text-sm">ניקוד</span>
+          <span className="text-2xl font-black text-orange-600">{score}</span>
+        </div>
+      </div>
 
-            document.getElementById('practice-options').innerHTML = options.map(opt => `
-                <button onclick="checkPractice(this, '${opt}')" class="bg-white border-2 border-slate-100 p-5 rounded-2xl font-bold transition-all active:scale-95">
-                    ${opt}
-                </button>
-            `).join('');
-        }
+      {!active && timeLeft === 30 && (
+        <div className="text-center py-10">
+          <p className="mb-6 text-gray-600">יש לך חצי דקה לזהות כמה שיותר מילים. מוכנים?</p>
+          <button onClick={startGame} className="bg-orange-500 text-white px-12 py-4 rounded-2xl text-xl font-black hover:bg-orange-600 shadow-lg">התחל מרוץ!</button>
+        </div>
+      )}
 
-        function checkPractice(btn, selected) {
-            const correct = words[practiceIdx].heb;
-            if(selected === correct) {
-                btn.classList.add('bg-green-500', 'text-white', 'border-green-500');
-                practiceIdx++;
-                setTimeout(() => {
-                    if(practiceIdx < words.length) updatePracticeQuestion();
-                    else showModal('🚀', 'הצלחת!', 'עברת את התרגול בהצלחה. הגיע הזמן למשחק המהירות!', 'בוא נשחק', 'bg-amber-500', () => switchView('game'));
-                }, 400);
-            } else {
-                btn.classList.add('bg-rose-500', 'text-white', 'border-rose-500', 'shake');
-                setTimeout(() => btn.classList.remove('bg-rose-500', 'text-white', 'border-rose-500', 'shake'), 500);
-            }
-        }
+      {active && currentQuestion && (
+        <div className="w-full max-w-sm">
+          <div className={`text-center py-8 mb-8 rounded-3xl border-4 transition-colors ${feedback === 'correct' ? 'border-green-500 bg-green-50' : feedback === 'wrong' ? 'border-red-500 bg-red-50' : 'border-orange-200 bg-orange-50'}`}>
+            <span className="text-4xl font-black text-gray-800" dir="ltr">{currentQuestion.english}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {options.map(opt => (
+              <button 
+                key={opt.id}
+                onClick={() => handleAnswer(opt)}
+                className="bg-white border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 p-4 rounded-xl font-bold text-lg transition shadow-sm"
+              >
+                {opt.hebrew}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-        // --- GAME ---
-        function startGame() {
-            gameScore = 0; timeLeft = 30;
-            document.getElementById('game-score').textContent = "0";
-            updateGameQuestion();
-            clearInterval(gameInterval);
-            gameInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('game-timer').textContent = timeLeft;
-                if(timeLeft <= 0) {
-                    clearInterval(gameInterval);
-                    showModal('🏁', 'נגמר הזמן!', `צברת ${gameScore} נקודות! רוצה לנסות לשבור את השיא?`, 'משחק חוזר', 'bg-amber-500', startGame);
-                }
-            }, 1000);
-        }
+      {!active && timeLeft === 0 && (
+        <div className="text-center py-10">
+          <div className="text-4xl font-black mb-2">נגמר הזמן!</div>
+          <div className="text-2xl text-gray-500 mb-8">השגת {score} נקודות</div>
+          <div className="flex gap-4">
+            <button onClick={startGame} className="bg-orange-500 text-white px-8 py-3 rounded-xl font-bold">נסה שוב</button>
+            <button onClick={onBack} className="bg-gray-100 text-gray-700 px-8 py-3 rounded-xl font-bold">חזור לתפריט</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-        function updateGameQuestion() {
-            const target = words[Math.floor(Math.random() * words.length)];
-            document.getElementById('game-target').textContent = target.eng;
-            
-            let options = [target.heb];
-            let others = words.filter(w => w.id !== target.id).map(w => w.heb);
-            while(options.length < Math.min(4, words.length)) {
-                let r = others[Math.floor(Math.random() * others.length)];
-                if(!options.includes(r)) options.push(r);
-            }
-            options.sort(() => Math.random() - 0.5);
+// --- Shared UI Components ---
 
-            document.getElementById('game-options').innerHTML = options.map(opt => `
-                <button onclick="checkGame(this, '${opt}', '${target.heb}')" class="bg-white text-slate-800 p-5 rounded-2xl font-black shadow-md active:scale-90 transition-all">
-                    ${opt}
-                </button>
-            `).join('');
-        }
+const GameCard = ({ title, desc, icon, enabled, onClick }) => {
+  return (
+    <div 
+      onClick={enabled ? onClick : null}
+      className={`relative p-6 rounded-2xl border-2 transition-all group overflow-hidden ${enabled ? 'bg-white border-gray-100 cursor-pointer hover:shadow-xl hover:-translate-y-1' : 'bg-gray-100 border-gray-200 cursor-not-allowed grayscale'}`}
+    >
+      <div className={`mb-4 inline-flex p-3 rounded-xl ${enabled ? 'bg-blue-50 text-blue-600' : 'bg-gray-200 text-gray-400'}`}>
+        {icon}
+      </div>
+      <h3 className="text-xl font-bold mb-1">{title}</h3>
+      <p className="text-gray-500 text-sm">{desc}</p>
+      
+      {!enabled && (
+        <div className="absolute top-4 left-4">
+          <span className="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded-full font-bold uppercase">נעול</span>
+        </div>
+      )}
+      
+      {enabled && (
+        <div className="mt-4 flex items-center text-blue-600 font-bold text-sm">
+          שחק עכשיו <Play size={14} className="mr-1 rotate-180" />
+        </div>
+      )}
+    </div>
+  );
+};
 
-        function checkGame(btn, selected, correct) {
-            if(selected === correct) {
-                gameScore += 10;
-                document.getElementById('game-score').textContent = gameScore;
-                document.getElementById('game-box').classList.add('bg-emerald-500');
-                setTimeout(() => {
-                    document.getElementById('game-box').classList.remove('bg-emerald-500');
-                    updateGameQuestion();
-                }, 150);
-            } else {
-                timeLeft = Math.max(0, timeLeft - 3);
-                btn.classList.add('bg-rose-500', 'text-white', 'shake');
-                document.getElementById('game-box').classList.add('bg-rose-500');
-                setTimeout(() => {
-                    btn.classList.remove('bg-rose-500', 'text-white', 'shake');
-                    document.getElementById('game-box').classList.remove('bg-rose-500');
-                }, 300);
-            }
-        }
-
-        function speakText(text) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'en-US';
-            u.rate = 0.9;
-            window.speechSynthesis.speak(u);
-        }
-    </script>
-</body>
-</html>
+export default App;
 

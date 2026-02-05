@@ -1,16 +1,55 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc } from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged, 
+  signInWithCustomToken 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  onSnapshot, 
+  deleteDoc, 
+  doc 
+} from 'firebase/firestore';
 
-// --- Firebase Configuration ---
-const firebaseConfig = JSON.parse(__firebase_config);
+/**
+ * התאמה ל-GitHub:
+ * בסביבת פיתוח אמיתית (כמו Vite), יש להשתמש ב-import.meta.env.VITE_FIREBASE_CONFIG
+ * כאן השארתי את הלוגיקה שתעבוד גם בסביבה הנוכחית וגם כבסיס לפרויקט חיצוני.
+ */
+const getFirebaseConfig = () => {
+  try {
+    // ניסיון לקרוא מהסביבה הנוכחית
+    if (typeof __firebase_config !== 'undefined') {
+      return JSON.parse(__firebase_config);
+    }
+  } catch (e) {
+    console.warn("Firebase config not found, please provide it in your environment variables.");
+  }
+  
+  // כאן תוכל להדביק את ה-Config שלך באופן ידני אם אתה מעלה ל-GitHub
+  return {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+};
+
+const firebaseConfig = getFirebaseConfig();
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// זיהוי App ID - ב-GitHub מומלץ להשתמש בערך קבוע או משתנה סביבה
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'english-magic-v2';
 
-// --- Icons ---
+// --- Icons (SVG) ---
 const Icons = {
   Volume: ({ size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>,
   Trash: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
@@ -29,7 +68,7 @@ const speak = (text) => {
   window.speechSynthesis.speak(utterance);
 };
 
-// --- Sub-Components ---
+// --- תתי רכיבים ---
 
 const MemoryGame = ({ words, onSpeak, onBack, isDark }) => {
   const [cards, setCards] = useState([]);
@@ -93,12 +132,12 @@ const MemoryGame = ({ words, onSpeak, onBack, isDark }) => {
         {cards.map(card => {
           const isFlipped = flipped.includes(card.id) || matched.includes(card.wordId);
           return (
-            <div key={card.id} className="aspect-square perspective cursor-pointer" onClick={() => handleFlip(card)}>
-              <div className={`relative w-full h-full preserve-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`}>
-                <div className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-sky-100'} absolute inset-0 rounded-xl border-2 shadow flex items-center justify-center backface-hidden`}>
+            <div key={card.id} className="aspect-square cursor-pointer" style={{ perspective: '1000px' }} onClick={() => handleFlip(card)}>
+              <div className={`relative w-full h-full transition-transform duration-500`} style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
+                <div className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-sky-100'} absolute inset-0 rounded-xl border-2 shadow flex items-center justify-center`} style={{ backfaceVisibility: 'hidden' }}>
                    <div className="opacity-20"><Icons.Star size={16} /></div>
                 </div>
-                <div className={`${isDark ? 'bg-slate-700 border-slate-500' : 'bg-white border-sky-300'} absolute inset-0 border-2 rounded-xl flex items-center justify-center backface-hidden rotate-y-180 shadow-inner overflow-hidden`}>
+                <div className={`${isDark ? 'bg-slate-700 border-slate-500' : 'bg-white border-sky-300'} absolute inset-0 border-2 rounded-xl flex items-center justify-center shadow-inner overflow-hidden`} style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                   <span className={`text-[10px] md:text-sm font-black text-center px-1 break-words ${card.type === 'eng' ? 'text-indigo-500' : 'text-pink-500'}`}>
                     {card.text}
                   </span>
@@ -161,13 +200,13 @@ const SpellingGame = ({ words, onSpeak, onBack, isDark }) => {
       </div>
       <div className="flex-grow flex flex-col items-center justify-center space-y-4">
         <h3 className={`text-3xl font-black ${isDark ? 'text-sky-200' : 'text-sky-900'}`}>{current.heb}</h3>
-        <button onClick={() => onSpeak(current.eng)} className="p-6 bg-sky-500 text-white rounded-full shadow-lg">
+        <button onClick={() => onSpeak(current.eng)} className="p-6 bg-sky-500 text-white rounded-full shadow-lg hover:scale-105 active:scale-95 transition">
           <Icons.Volume size={32} />
         </button>
         <form onSubmit={handleSubmit} className="w-full max-w-xs pt-4">
           <input 
             autoFocus
-            className={`w-full p-4 text-center text-2xl font-black rounded-2xl border-4 mb-3 outline-none ${
+            className={`w-full p-4 text-center text-2xl font-black rounded-2xl border-4 mb-3 outline-none transition-colors ${
               status === 'correct' ? 'border-green-400 bg-green-50' : 
               status === 'wrong' ? 'border-red-400 bg-red-50' : 
               isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-sky-50 border-sky-100'
@@ -177,7 +216,7 @@ const SpellingGame = ({ words, onSpeak, onBack, isDark }) => {
             onChange={(e) => setInput(e.target.value)}
             dir="ltr"
           />
-          <button className="w-full bg-indigo-500 text-white py-3 rounded-xl font-black">בדוק!</button>
+          <button className="w-full bg-indigo-500 text-white py-3 rounded-xl font-black hover:bg-indigo-600 transition">בדוק!</button>
         </form>
       </div>
     </div>
@@ -217,7 +256,7 @@ const QuizView = ({ words, onPass, onFail, onSpeak, isDark }) => {
   return (
     <div className="flex flex-col h-full py-2" dir="rtl">
       <div className="flex justify-center mb-6">
-        <div className="bg-sky-500/10 px-4 py-1 rounded-full text-xs font-black text-sky-500" dir="rtl">
+        <div className="bg-sky-500/10 px-4 py-1 rounded-full text-xs font-black text-sky-500">
            שאלה {currentIdx + 1} מתוך {questions.length}
         </div>
       </div>
@@ -229,7 +268,7 @@ const QuizView = ({ words, onPass, onFail, onSpeak, isDark }) => {
             onClick={() => handleAnswer(opt.id)}
             className={`p-4 rounded-xl text-sm font-black border-2 transition h-20 flex items-center justify-center ${
               selected === opt.id ? (isCorrect ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white') : 
-              (isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-sky-100')
+              (isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white border-sky-100 hover:bg-sky-50')
             }`}
           >{opt.heb}</button>
         ))}
@@ -253,7 +292,7 @@ const LearningView = ({ words, known, onUpdateKnown, onSpeak, onFinish, isDark }
     return (
       <div className="flex flex-col h-full justify-center items-center text-center space-y-6" dir="rtl">
         <h2 className="text-3xl font-black">סיימת ללמוד! ✨</h2>
-        <button onClick={onFinish} className="w-full max-w-xs bg-indigo-500 text-white py-5 rounded-2xl font-black text-xl shadow-xl">בואו נבחן! 🪄</button>
+        <button onClick={onFinish} className="w-full max-w-xs bg-indigo-500 text-white py-5 rounded-2xl font-black text-xl shadow-xl hover:bg-indigo-600 transition">בואו נבחן! 🪄</button>
       </div>
     );
   }
@@ -262,24 +301,26 @@ const LearningView = ({ words, known, onUpdateKnown, onSpeak, onFinish, isDark }
 
   return (
     <div className="flex flex-col h-full items-center justify-between py-4" dir="rtl">
-      <div className="w-full max-w-[220px] aspect-[4/5] perspective cursor-pointer" onClick={() => setFlipped(!flipped)}>
-        <div className={`relative w-full h-full preserve-3d transition-transform duration-500 ${flipped ? 'rotate-y-180' : ''}`}>
-          <div className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-sky-100'} absolute inset-0 rounded-[2.5rem] border-[8px] flex flex-col items-center justify-center backface-hidden shadow-xl`}>
+      <div className="w-full max-w-[220px] aspect-[4/5] cursor-pointer" style={{ perspective: '1000px' }} onClick={() => setFlipped(!flipped)}>
+        <div className="relative w-full h-full transition-transform duration-500" style={{ transformStyle: 'preserve-3d', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
+          <div className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-sky-100'} absolute inset-0 rounded-[2.5rem] border-[8px] flex flex-col items-center justify-center shadow-xl`} style={{ backfaceVisibility: 'hidden' }}>
              <span className="text-4xl font-black mb-6" dir="ltr">{current.eng}</span>
              <button onClick={(e) => { e.stopPropagation(); onSpeak(current.eng); }} className="p-3 bg-sky-500 text-white rounded-full"><Icons.Volume size={24} /></button>
           </div>
-          <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-indigo-500 rounded-[2.5rem] border-[8px] border-white flex items-center justify-center backface-hidden rotate-y-180 shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-400 to-indigo-500 rounded-[2.5rem] border-[8px] border-white flex items-center justify-center rotate-y-180 shadow-xl" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
             <span className="text-4xl font-black text-white px-2 text-center">{current.heb}</span>
           </div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4 w-full pt-4">
-        <button onClick={() => { setFlipped(false); setIdx(idx + 1); }} className="bg-slate-200 text-slate-600 p-4 rounded-2xl font-black">עוד לא..</button>
-        <button onClick={() => { onUpdateKnown([...known, current]); setFlipped(false); setIdx(idx + 1); }} className="bg-sky-500 text-white p-4 rounded-2xl font-black">יודע!</button>
+        <button onClick={() => { setFlipped(false); setIdx(idx + 1); }} className="bg-slate-200 text-slate-600 p-4 rounded-2xl font-black hover:bg-slate-300">עוד לא..</button>
+        <button onClick={() => { onUpdateKnown([...known, current]); setFlipped(false); setIdx(idx + 1); }} className="bg-sky-500 text-white p-4 rounded-2xl font-black hover:bg-sky-600">יודע!</button>
       </div>
     </div>
   );
 };
+
+// --- App Main ---
 
 const App = () => {
   const [view, setView] = useState('setup');
@@ -290,43 +331,62 @@ const App = () => {
   const [savedLists, setSavedLists] = useState([]);
   const [listName, setListName] = useState("");
 
+  // Firebase Auth
   useEffect(() => {
     const initAuth = async () => {
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
-      else await signInAnonymously(auth);
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Auth Error:", err);
+      }
     };
     initAuth();
     const unsub = onAuthStateChanged(auth, setUser);
     return () => unsub();
   }, []);
 
+  // Listen to Firestore
   useEffect(() => {
     if (!user) return;
     const q = collection(db, 'artifacts', appId, 'users', user.uid, 'wordLists');
-    const unsub = onSnapshot(q, (snapshot) => setSavedLists(snapshot.docs.map(d => ({ ...d.data(), id: d.id }))), (err) => console.error(err));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setSavedLists(snapshot.docs.map(d => ({ ...d.data(), id: d.id })));
+    }, (err) => console.error("Firestore Listen Error:", err));
     return () => unsub();
   }, [user]);
 
   const handleSaveList = async () => {
     if (!wordList.length || !listName || !user) return;
-    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'wordLists'), {
-      name: listName,
-      words: wordList,
-      createdAt: Date.now()
-    });
-    setListName("");
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'wordLists'), {
+        name: listName,
+        words: wordList,
+        createdAt: Date.now()
+      });
+      setListName("");
+    } catch (err) {
+      console.error("Save Error:", err);
+    }
   };
 
   const handleDeleteList = async (e, id) => {
     e.stopPropagation();
-    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'wordLists', id));
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'wordLists', id));
+    } catch (err) {
+      console.error("Delete Error:", err);
+    }
   };
 
   return (
     <div className={`${isDarkMode ? 'dark bg-slate-950 text-white' : 'bg-sky-50 text-slate-900'} h-[100dvh] transition-colors duration-500 font-sans p-4 overflow-hidden`} dir="rtl">
       <div className="max-w-md mx-auto h-full flex flex-col">
         
-        {/* Compact Header - Centered Title */}
+        {/* Header */}
         <div className="relative flex items-center justify-center mb-4 shrink-0 h-10">
            <h1 className={`text-2xl font-black tracking-tighter ${isDarkMode ? 'text-sky-400' : 'text-sky-600'}`}>English Magic</h1>
            <button 
@@ -342,7 +402,7 @@ const App = () => {
             <div className="h-full flex flex-col">
               <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-6 rounded-3xl shadow-xl border-2 shrink-0 mb-4`}>
                 <textarea 
-                  className={`w-full h-24 p-3 rounded-xl border-2 outline-none text-left font-bold text-base mb-2 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-sky-50 border-sky-100'}`}
+                  className={`w-full h-24 p-3 rounded-xl border-2 outline-none text-left font-bold text-base mb-2 transition-colors ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-sky-50 border-sky-100'}`}
                   dir="ltr"
                   placeholder="Apple - תפוח..."
                   id="word-input"
@@ -356,15 +416,16 @@ const App = () => {
                     }).filter(Boolean);
                     if (parsed.length) { setWordList(parsed); setView('learning'); }
                   }}
-                  className="w-full bg-sky-500 text-white py-3 rounded-xl font-black text-lg"
+                  className="w-full bg-sky-500 text-white py-3 rounded-xl font-black text-lg hover:bg-sky-600 transition-colors"
                 >בואו נתחיל!</button>
               </div>
 
               <div className="flex-grow overflow-y-auto space-y-2 pb-4">
+                {savedLists.length > 0 && <p className="text-xs font-black opacity-40 mb-1 px-1">רשימות שמורות:</p>}
                 {savedLists.map(list => (
-                  <div key={list.id} onClick={() => { setWordList(list.words); setView('learning'); }} className={`${isDarkMode ? 'bg-slate-900' : 'bg-white'} p-3 rounded-xl shadow-sm flex justify-between items-center transition`}>
+                  <div key={list.id} onClick={() => { setWordList(list.words); setView('learning'); }} className={`${isDarkMode ? 'bg-slate-900 hover:bg-slate-800' : 'bg-white hover:bg-sky-50'} p-3 rounded-xl shadow-sm flex justify-between items-center transition-all cursor-pointer`}>
                     <span className="font-black text-sm">{list.name} ({list.words.length})</span>
-                    <button onClick={(e) => handleDeleteList(e, list.id)} className="text-red-300 p-1"><Icons.Trash /></button>
+                    <button onClick={(e) => handleDeleteList(e, list.id)} className="text-red-300 p-1 hover:text-red-500 transition-colors"><Icons.Trash /></button>
                   </div>
                 ))}
               </div>
@@ -377,15 +438,15 @@ const App = () => {
           {view === 'games' && (
             <div className="h-full flex flex-col justify-center space-y-6">
               <div className="grid grid-cols-1 gap-4">
-                <button onClick={() => setView('memory-game')} className="bg-indigo-500 p-8 rounded-3xl text-white font-black text-2xl shadow-lg">זיכרון</button>
-                <button onClick={() => setView('spelling-game')} className="bg-pink-500 p-8 rounded-3xl text-white font-black text-2xl shadow-lg">הכתבה</button>
+                <button onClick={() => setView('memory-game')} className="bg-indigo-500 p-8 rounded-3xl text-white font-black text-2xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition">זיכרון</button>
+                <button onClick={() => setView('spelling-game')} className="bg-pink-500 p-8 rounded-3xl text-white font-black text-2xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition">הכתבה</button>
               </div>
               <div className="pt-6 border-t border-slate-700/10 space-y-3">
                 <div className="flex gap-2">
-                  <input className={`flex-1 p-3 rounded-xl border-2 outline-none font-bold text-sm ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-sky-100'}`} placeholder="שם לרשימה..." value={listName} onChange={(e) => setListName(e.target.value)} />
-                  <button onClick={handleSaveList} className="bg-green-500 text-white p-3 rounded-xl shadow-lg font-black"><Icons.Save /></button>
+                  <input className={`flex-1 p-3 rounded-xl border-2 outline-none font-bold text-sm transition-colors ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-sky-100'}`} placeholder="שם לרשימה..." value={listName} onChange={(e) => setListName(e.target.value)} />
+                  <button onClick={handleSaveList} className="bg-green-500 text-white p-3 rounded-xl shadow-lg font-black hover:bg-green-600 transition"><Icons.Save /></button>
                 </div>
-                <button onClick={() => { setWordList([]); setKnownWords([]); setView('setup'); }} className="w-full py-3 text-red-400 font-black border border-red-400/20 rounded-xl">איפוס והתחלה מחדש 🗑️</button>
+                <button onClick={() => { setWordList([]); setKnownWords([]); setView('setup'); }} className="w-full py-3 text-red-400 font-black border border-red-400/20 rounded-xl hover:bg-red-500/5 transition">איפוס והתחלה מחדש 🗑️</button>
               </div>
             </div>
           )}

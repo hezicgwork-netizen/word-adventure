@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>English Magic - Responsive</title>
+    <title>English Magic - Smart Loop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -23,8 +23,6 @@
             75% { transform: translateX(5px); }
         }
         .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
-        
-        /* Ensures the app takes the full visible height on mobile */
         .app-height { min-height: 100vh; min-height: -webkit-fill-available; }
     </style>
 </head>
@@ -34,7 +32,6 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- Firebase Config ---
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -72,37 +69,66 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- Flashcards ---
+        // --- Flashcards with Smart Loop ---
         const Flashcards = ({ words, onFinish, isDark }) => {
+            const [queue, setQueue] = useState([...words]);
             const [idx, setIdx] = useState(0);
             const [isFlipped, setIsFlipped] = useState(false);
-            const current = words[idx];
+            const current = queue[idx];
+
+            const handleKnow = (wellKnown) => {
+                if (!wellKnown) {
+                    // מוסיפים את המילה לסוף התור אם לא יודעים
+                    setQueue([...queue, current]);
+                }
+                
+                if (idx + 1 < queue.length) {
+                    setIdx(idx + 1);
+                    setIsFlipped(false);
+                } else {
+                    onFinish();
+                }
+            };
 
             return (
-                <div className="flex flex-col flex-grow items-center justify-center space-y-6 md:space-y-8 py-2">
+                <div className="flex flex-col flex-grow items-center justify-center space-y-6 py-2">
                     <div className="text-center">
-                        <span className="text-xs md:text-sm opacity-50 font-bold">{idx + 1} / {words.length}</span>
-                        <h2 className="text-lg md:text-xl font-black mt-1 italic">שלב 1: הכרת המילים</h2>
+                        <span className="text-xs md:text-sm opacity-50 font-bold">מילה {idx + 1} מתוך {queue.length}</span>
+                        <h2 className="text-lg md:text-xl font-black mt-1 italic">שלב 1: לימוד (חזור על מה שקשה)</h2>
                     </div>
+                    
                     <div className="w-full max-w-[280px] md:max-w-xs aspect-[3/4] perspective cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
                         <div className={`relative w-full h-full preserve-3d transition-transform duration-500 shadow-2xl rounded-3xl ${isFlipped ? 'rotate-y-180' : ''}`}>
                             <div className={`absolute inset-0 flex flex-col items-center justify-center backface-hidden rounded-3xl border-4 ${isDark ? 'bg-slate-900 border-sky-500' : 'bg-white border-sky-400'}`}>
                                 <h3 className="text-3xl md:text-4xl font-black text-center px-4">{current.eng}</h3>
-                                <button onClick={(e) => { e.stopPropagation(); speak(current.eng); }} className="mt-6 md:mt-8 p-3 md:p-4 bg-sky-100 text-sky-600 rounded-full"><Icons.Volume size={24} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); speak(current.eng); }} className="mt-6 p-3 bg-sky-100 text-sky-600 rounded-full"><Icons.Volume size={24} /></button>
+                                <p className="mt-4 text-xs opacity-40 font-bold">לחץ להפיכה</p>
                             </div>
                             <div className={`absolute inset-0 flex flex-col items-center justify-center backface-hidden rotate-y-180 rounded-3xl border-4 ${isDark ? 'bg-sky-900 border-white text-white' : 'bg-sky-600 border-white text-white'}`}>
                                 <h3 className="text-3xl md:text-4xl font-black text-center px-4">{current.heb}</h3>
                             </div>
                         </div>
                     </div>
-                    <button onClick={() => { if (idx+1 < words.length) { setIdx(idx+1); setIsFlipped(false); } else onFinish(); }} className="w-full max-w-[280px] md:max-w-xs bg-sky-500 text-white py-3 md:py-4 rounded-2xl font-black text-lg md:text-xl shadow-lg active:scale-95 transition-transform">
-                        {idx + 1 === words.length ? 'עבור למבחן ➔' : 'למילה הבאה'}
-                    </button>
+
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-[280px] md:max-w-xs">
+                        <button 
+                            onClick={() => handleKnow(false)}
+                            className="bg-red-100 text-red-600 py-4 rounded-2xl font-black text-2xl shadow-md border-b-4 border-red-300 active:border-b-0 active:translate-y-1"
+                        >
+                            👎
+                        </button>
+                        <button 
+                            onClick={() => handleKnow(true)}
+                            className="bg-green-100 text-green-600 py-4 rounded-2xl font-black text-2xl shadow-md border-b-4 border-green-300 active:border-b-0 active:translate-y-1"
+                        >
+                            👍
+                        </button>
+                    </div>
                 </div>
             );
         };
 
-        // --- Knowledge Test ---
+        // --- Knowledge Test (70% Gate) ---
         const KnowledgeGate = ({ words, onPass, onFail, isDark }) => {
             const [idx, setIdx] = useState(0);
             const [score, setScore] = useState(0);
@@ -125,42 +151,33 @@
                 if (opt.id === current.id) {
                     setScore(s => s + 1);
                     speak(current.eng);
-                    setTimeout(next, 700);
-                } else {
-                    setTimeout(next, 1000);
                 }
-            };
-
-            const next = () => {
-                if (idx + 1 < words.length) {
-                    setIdx(idx + 1);
-                } else {
-                    const finalPercentage = ((score + (selected === current.id ? 1 : 0)) / words.length) * 100;
-                    if (finalPercentage >= 70) onPass();
-                    else onFail(finalPercentage);
-                }
+                setTimeout(() => {
+                    if (idx + 1 < words.length) setIdx(idx + 1);
+                    else {
+                        const final = ((score + (opt.id === current.id ? 1 : 0)) / words.length) * 100;
+                        if (final >= 70) onPass(); else onFail(final);
+                    }
+                }, 800);
             };
 
             return (
-                <div className="flex flex-col flex-grow justify-center space-y-4 md:space-y-6">
+                <div className="flex flex-col flex-grow justify-center space-y-4">
                     <div className="text-center">
-                        <h2 className="text-xl md:text-2xl font-black">שלב 2: בוחן פתיחה</h2>
-                        <div className="w-full bg-gray-200 h-1.5 rounded-full mt-3 overflow-hidden">
+                        <h2 className="text-xl font-black">מבחן פתיחה (70% מעבר)</h2>
+                        <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden">
                             <div className="bg-sky-500 h-full transition-all duration-300" style={{width: `${(idx / words.length) * 100}%`}}></div>
                         </div>
                     </div>
-                    
-                    <div className={`p-6 md:p-8 rounded-2xl md:rounded-3xl text-center border-2 md:border-4 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-sky-100'}`}>
-                        <h3 className="text-3xl md:text-4xl font-black text-sky-500 mb-1">{current.eng}</h3>
-                        <p className="text-xs md:text-sm opacity-50 font-bold">מה התרגום הנכון?</p>
+                    <div className={`p-8 rounded-3xl text-center border-2 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-sky-100'}`}>
+                        <h3 className="text-3xl font-black text-sky-500">{current.eng}</h3>
                     </div>
-
-                    <div className="grid grid-cols-1 gap-2 md:gap-3">
+                    <div className="grid grid-cols-1 gap-2">
                         {options.map(opt => (
                             <button
                                 key={opt.id}
                                 onClick={() => handleAnswer(opt)}
-                                className={`p-3 md:p-4 rounded-xl md:rounded-2xl font-bold text-base md:text-lg transition-all border-2 ${
+                                className={`p-4 rounded-xl font-bold text-lg transition-all border-2 ${
                                     selected === opt.id 
                                         ? (opt.id === current.id ? 'bg-green-500 text-white border-green-600' : 'bg-red-500 text-white border-red-600 animate-shake')
                                         : (isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-sky-50')
@@ -181,7 +198,8 @@
             const [matched, setMatched] = useState([]);
 
             useEffect(() => {
-                const selection = [...words].sort(() => 0.5 - Math.random()).slice(0, 6);
+                const gameSize = Math.min(words.length, 6);
+                const selection = [...words].sort(() => 0.5 - Math.random()).slice(0, gameSize);
                 const deck = [];
                 selection.forEach(w => {
                     deck.push({ id: `${w.id}-eng`, wordId: w.id, text: w.eng, type: 'eng' });
@@ -208,8 +226,8 @@
             return (
                 <div className="flex flex-col flex-grow">
                     <header className="flex justify-between items-center mb-4">
-                        <button onClick={onBack} className="text-sky-500 font-bold text-sm">← חזור</button>
-                        <span className="text-xs opacity-50 font-black">נמצאו: {matched.length}/6</span>
+                        <button onClick={onBack} className="text-sky-500 font-bold">← ביטול</button>
+                        <span className="font-black opacity-40">{matched.length} / {cards.length/2}</span>
                     </header>
                     <div className="grid grid-cols-3 gap-2 flex-grow items-center">
                         {cards.map(card => {
@@ -217,7 +235,7 @@
                             return (
                                 <div key={card.id} className="aspect-square perspective cursor-pointer" onClick={() => handleFlip(card)}>
                                     <div className={`relative w-full h-full preserve-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                        <div className={`absolute inset-0 rounded-lg border flex items-center justify-center backface-hidden shadow-sm ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-sky-100'}`}>?</div>
+                                        <div className={`absolute inset-0 rounded-lg border flex items-center justify-center backface-hidden shadow-sm ${isDark ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-white border-sky-100 text-sky-200'}`}>?</div>
                                         <div className={`absolute inset-0 rounded-lg border flex items-center justify-center rotate-y-180 backface-hidden shadow-inner text-[10px] md:text-xs text-center p-1 font-bold ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-sky-50 border-sky-200'}`}>
                                             {card.text}
                                         </div>
@@ -226,6 +244,9 @@
                             );
                         })}
                     </div>
+                    {matched.length === cards.length/2 && cards.length > 0 && (
+                        <button onClick={onBack} className="mt-4 bg-sky-500 text-white py-4 rounded-xl font-black">מעולה! חזרה לתפריט</button>
+                    )}
                 </div>
             );
         };
@@ -237,6 +258,7 @@
             const [isDarkMode, setIsDarkMode] = useState(false);
             const [user, setUser] = useState(null);
             const [savedLists, setSavedLists] = useState([]);
+            const [failedScore, setFailedScore] = useState(0);
 
             useEffect(() => {
                 const unsub = auth.onAuthStateChanged(u => {
@@ -263,30 +285,30 @@
             };
 
             return (
-                <div className={`${isDarkMode ? 'bg-slate-950 text-white' : 'bg-sky-50 text-slate-900'} app-height transition-colors p-4 md:p-6 overflow-x-hidden flex flex-col`}>
+                <div className={`${isDarkMode ? 'bg-slate-950 text-white' : 'bg-sky-50 text-slate-900'} app-height transition-colors p-4 md:p-6 flex flex-col`}>
                     <div className="w-full max-w-md mx-auto flex flex-col flex-grow">
-                        <header className="relative flex justify-center items-center h-12 md:h-16 mb-4 md:mb-6">
-                            <h1 className={`text-2xl md:text-3xl font-black transition-colors ${isDarkMode ? 'text-yellow-400' : 'text-sky-500'}`}>
+                        <header className="relative flex justify-center items-center h-12 mb-4">
+                            <h1 className={`text-2xl font-black transition-colors ${isDarkMode ? 'text-yellow-400' : 'text-sky-500'}`}>
                                 English Magic
                             </h1>
                             <button 
                                 onClick={() => setIsDarkMode(!isDarkMode)} 
-                                className={`absolute left-0 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl shadow-sm border transition-all active:scale-90 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-yellow-400' : 'bg-white border-sky-100 text-indigo-600'}`}
+                                className={`absolute left-0 w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-90 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-yellow-400' : 'bg-white border-sky-100 text-indigo-600'}`}
                             >
                                 {isDarkMode ? <Icons.Sun /> : <Icons.Moon />}
                             </button>
                         </header>
 
                         {view === 'setup' && (
-                            <div className="space-y-4 md:space-y-6 flex-grow flex flex-col">
-                                <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-4 md:p-6 rounded-2xl md:rounded-3xl shadow-xl border-2 flex flex-col`}>
-                                    <textarea id="word-input" className={`w-full h-32 md:h-48 p-3 md:p-4 rounded-xl border-2 outline-none text-left font-bold text-sm md:text-base ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-sky-50 border-sky-100'}`} dir="ltr" placeholder="Dog - כלב..."></textarea>
-                                    <button onClick={startApp} className="w-full bg-sky-500 text-white py-3 md:py-4 rounded-xl font-black text-lg md:text-xl shadow-lg mt-4 active:scale-95 transition-transform">בואו נלמד!</button>
+                            <div className="space-y-4 flex-grow flex flex-col">
+                                <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-4 rounded-2xl shadow-xl border-2 flex flex-col`}>
+                                    <textarea id="word-input" className={`w-full h-32 p-3 rounded-xl border-2 outline-none text-left font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-sky-50 border-sky-100'}`} dir="ltr" placeholder="Apple - תפוח..."></textarea>
+                                    <button onClick={startApp} className="w-full bg-sky-500 text-white py-4 rounded-xl font-black text-xl shadow-lg mt-4 active:scale-95">התחל ללמוד</button>
                                 </div>
-                                <div className="space-y-2 flex-grow overflow-y-auto max-h-[200px] md:max-h-none pr-1">
+                                <div className="space-y-2 overflow-y-auto">
                                     {savedLists.map(list => (
-                                        <div key={list.id} onClick={() => { setWordList(list.words); setView('learning'); }} className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-3 md:p-4 rounded-xl shadow flex justify-between cursor-pointer border hover:border-sky-400 active:bg-sky-50 transition-all`}>
-                                            <span className="font-black text-sm md:text-base">{list.name}</span>
+                                        <div key={list.id} onClick={() => { setWordList(list.words); setView('learning'); }} className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-3 rounded-xl shadow flex justify-between cursor-pointer border`}>
+                                            <span className="font-black">{list.name}</span>
                                             <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('wordLists').doc(list.id).delete(); }} className="text-red-400"><Icons.Trash /></button>
                                         </div>
                                     ))}
@@ -296,24 +318,24 @@
 
                         {view === 'learning' && <Flashcards words={wordList} onFinish={() => setView('gate')} isDark={isDarkMode} />}
 
-                        {view === 'gate' && <KnowledgeGate words={wordList} onPass={() => setView('games')} onFail={() => setView('gate-failed')} isDark={isDarkMode} />}
+                        {view === 'gate' && <KnowledgeGate words={wordList} onPass={() => setView('games')} onFail={(s) => { setFailedScore(s); setView('gate-failed'); }} isDark={isDarkMode} />}
 
                         {view === 'gate-failed' && (
                             <div className="text-center flex-grow flex flex-col justify-center space-y-6">
-                                <div className="text-5xl md:text-7xl">😕</div>
-                                <h2 className="text-2xl md:text-3xl font-black">צריך עוד קצת תרגול</h2>
-                                <p className="text-base md:text-lg opacity-70">צריך לפחות 70% כדי לפתוח את המשחקים.</p>
-                                <button onClick={() => setView('learning')} className="w-full bg-sky-500 text-white py-3 md:py-4 rounded-xl font-black text-lg">חזרה ללימוד</button>
+                                <div className="text-6xl">📉</div>
+                                <h2 className="text-2xl font-black">קיבלת {Math.round(failedScore)}%</h2>
+                                <p className="opacity-70 font-bold">צריך לפחות 70% כדי לפתוח את המשחקים. כדאי לחזור על המילים שוב!</p>
+                                <button onClick={() => setView('learning')} className="w-full bg-sky-500 text-white py-4 rounded-xl font-black">חזרה ללימוד</button>
                             </div>
                         )}
 
                         {view === 'games' && (
-                            <div className="flex flex-col flex-grow justify-center space-y-3 md:space-y-4">
-                                <div className="text-center p-4 md:p-6 bg-green-500 rounded-2xl md:rounded-3xl text-white shadow-lg mb-4">
-                                    <h2 className="text-xl md:text-2xl font-black italic">כל הכבוד! המשחקים פתוחים</h2>
+                            <div className="flex flex-col flex-grow justify-center space-y-4">
+                                <div className="text-center p-6 bg-green-500 rounded-3xl text-white shadow-lg animate-bounce">
+                                    <h2 className="text-2xl font-black italic">עברת את המבחן! 🎉</h2>
                                 </div>
-                                <button onClick={() => setView('memory')} className="bg-indigo-500 p-8 md:p-12 rounded-2xl md:rounded-3xl text-white font-black text-xl md:text-2xl shadow-xl active:scale-95 transition-transform">זיכרון 🧠</button>
-                                <button onClick={() => setView('setup')} className="text-sky-500 font-bold pt-4 text-center">בחירת רשימה אחרת</button>
+                                <button onClick={() => setView('memory')} className="bg-indigo-600 p-10 rounded-3xl text-white font-black text-2xl shadow-xl active:scale-95">זיכרון 🧠</button>
+                                <button onClick={() => setView('setup')} className="text-sky-500 font-bold text-center mt-4">בחירת רשימה אחרת</button>
                             </div>
                         )}
 

@@ -12,7 +12,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        body { touch-action: manipulation; }
+        body { 
+            touch-action: manipulation; 
+            margin: 0;
+            padding: 0;
+        }
         .perspective { perspective: 1000px; }
         .preserve-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
@@ -23,15 +27,20 @@
             75% { transform: translateX(5px); }
         }
         .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
-        .app-height { min-height: 100vh; min-height: -webkit-fill-available; }
+        
+        /* תיקון צבע הרקע לכל גובה המסך */
+        html, body, #root { 
+            height: 100%;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useCallback } = React;
 
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -46,10 +55,12 @@
             return firebaseConfig;
         };
 
-        firebase.initializeApp(getFinalConfig());
+        if (!firebase.apps.length) {
+            firebase.initializeApp(getFinalConfig());
+        }
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const appId = "english-magic-v2";
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'english-magic-v2';
 
         const Icons = {
             Volume: ({ size = 20 }) => (
@@ -69,7 +80,7 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- Flashcards with Smart Loop ---
+        // --- Flashcards with Learning Loop ---
         const Flashcards = ({ words, onFinish, isDark }) => {
             const [queue, setQueue] = useState([...words]);
             const [idx, setIdx] = useState(0);
@@ -78,7 +89,6 @@
 
             const handleKnow = (wellKnown) => {
                 if (!wellKnown) {
-                    // מוסיפים את המילה לסוף התור אם לא יודעים
                     setQueue([...queue, current]);
                 }
                 
@@ -91,44 +101,46 @@
             };
 
             return (
-                <div className="flex flex-col flex-grow items-center justify-center space-y-6 py-2">
+                <div className="flex flex-col flex-grow items-center justify-center space-y-6 py-4">
                     <div className="text-center">
-                        <span className="text-xs md:text-sm opacity-50 font-bold">מילה {idx + 1} מתוך {queue.length}</span>
-                        <h2 className="text-lg md:text-xl font-black mt-1 italic">שלב 1: לימוד (חזור על מה שקשה)</h2>
+                        <span className="text-xs opacity-50 font-bold">מילה {idx + 1} מתוך {queue.length}</span>
+                        <h2 className="text-lg md:text-xl font-black mt-1 italic">שלב 1: לימוד ותרגול</h2>
                     </div>
                     
                     <div className="w-full max-w-[280px] md:max-w-xs aspect-[3/4] perspective cursor-pointer" onClick={() => setIsFlipped(!isFlipped)}>
                         <div className={`relative w-full h-full preserve-3d transition-transform duration-500 shadow-2xl rounded-3xl ${isFlipped ? 'rotate-y-180' : ''}`}>
                             <div className={`absolute inset-0 flex flex-col items-center justify-center backface-hidden rounded-3xl border-4 ${isDark ? 'bg-slate-900 border-sky-500' : 'bg-white border-sky-400'}`}>
-                                <h3 className="text-3xl md:text-4xl font-black text-center px-4">{current.eng}</h3>
-                                <button onClick={(e) => { e.stopPropagation(); speak(current.eng); }} className="mt-6 p-3 bg-sky-100 text-sky-600 rounded-full"><Icons.Volume size={24} /></button>
-                                <p className="mt-4 text-xs opacity-40 font-bold">לחץ להפיכה</p>
+                                <h3 className="text-4xl font-black text-center px-4">{current.eng}</h3>
+                                <button onClick={(e) => { e.stopPropagation(); speak(current.eng); }} className="mt-6 p-3 bg-sky-100 text-sky-600 rounded-full hover:bg-sky-200 transition-colors"><Icons.Volume size={24} /></button>
+                                <p className="mt-4 text-xs opacity-40 font-bold uppercase tracking-widest">לחץ להפיכה</p>
                             </div>
                             <div className={`absolute inset-0 flex flex-col items-center justify-center backface-hidden rotate-y-180 rounded-3xl border-4 ${isDark ? 'bg-sky-900 border-white text-white' : 'bg-sky-600 border-white text-white'}`}>
-                                <h3 className="text-3xl md:text-4xl font-black text-center px-4">{current.heb}</h3>
+                                <h3 className="text-4xl font-black text-center px-4">{current.heb}</h3>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-[280px] md:max-w-xs">
+                    <div className="grid grid-cols-2 gap-4 w-full max-w-[320px]">
                         <button 
                             onClick={() => handleKnow(false)}
-                            className="bg-red-100 text-red-600 py-4 rounded-2xl font-black text-2xl shadow-md border-b-4 border-red-300 active:border-b-0 active:translate-y-1"
+                            className="bg-red-100 text-red-600 py-4 rounded-2xl font-black shadow-md border-b-4 border-red-300 active:border-b-0 active:translate-y-1 flex flex-col items-center justify-center"
                         >
-                            👎
+                            <span className="text-2xl mb-1">👎</span>
+                            <span className="text-sm">עוד לא יודע</span>
                         </button>
                         <button 
                             onClick={() => handleKnow(true)}
-                            className="bg-green-100 text-green-600 py-4 rounded-2xl font-black text-2xl shadow-md border-b-4 border-green-300 active:border-b-0 active:translate-y-1"
+                            className="bg-green-100 text-green-600 py-4 rounded-2xl font-black shadow-md border-b-4 border-green-300 active:border-b-0 active:translate-y-1 flex flex-col items-center justify-center"
                         >
-                            👍
+                            <span className="text-2xl mb-1">👍</span>
+                            <span className="text-sm">יודע</span>
                         </button>
                     </div>
                 </div>
             );
         };
 
-        // --- Knowledge Test (70% Gate) ---
+        // --- Knowledge Test ---
         const KnowledgeGate = ({ words, onPass, onFail, isDark }) => {
             const [idx, setIdx] = useState(0);
             const [score, setScore] = useState(0);
@@ -138,12 +150,13 @@
             const current = words[idx];
 
             useEffect(() => {
+                if (!current) return;
                 const others = words.filter(w => w.id !== current.id);
                 const shuffledOthers = others.sort(() => 0.5 - Math.random()).slice(0, 3);
                 const opts = [...shuffledOthers, current].sort(() => 0.5 - Math.random());
                 setOptions(opts);
                 setSelected(null);
-            }, [idx]);
+            }, [idx, words]);
 
             const handleAnswer = (opt) => {
                 if (selected) return;
@@ -162,11 +175,11 @@
             };
 
             return (
-                <div className="flex flex-col flex-grow justify-center space-y-4">
+                <div className="flex flex-col flex-grow justify-center space-y-4 max-w-sm mx-auto w-full">
                     <div className="text-center">
-                        <h2 className="text-xl font-black">מבחן פתיחה (70% מעבר)</h2>
+                        <h2 className="text-xl font-black">מבחן מעבר (70%)</h2>
                         <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden">
-                            <div className="bg-sky-500 h-full transition-all duration-300" style={{width: `${(idx / words.length) * 100}%`}}></div>
+                            <div className="bg-sky-500 h-full transition-all duration-300" style={{width: `${((idx + 1) / words.length) * 100}%`}}></div>
                         </div>
                     </div>
                     <div className={`p-8 rounded-3xl text-center border-2 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-sky-100'}`}>
@@ -180,73 +193,13 @@
                                 className={`p-4 rounded-xl font-bold text-lg transition-all border-2 ${
                                     selected === opt.id 
                                         ? (opt.id === current.id ? 'bg-green-500 text-white border-green-600' : 'bg-red-500 text-white border-red-600 animate-shake')
-                                        : (isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-sky-50')
+                                        : (isDark ? 'bg-slate-800 border-slate-700 text-white hover:bg-slate-700' : 'bg-white border-sky-50 hover:bg-sky-50')
                                 }`}
                             >
                                 {opt.heb}
                             </button>
                         ))}
                     </div>
-                </div>
-            );
-        };
-
-        // --- Memory Game ---
-        const MemoryGame = ({ words, onSpeak, onBack, isDark }) => {
-            const [cards, setCards] = useState([]);
-            const [flipped, setFlipped] = useState([]);
-            const [matched, setMatched] = useState([]);
-
-            useEffect(() => {
-                const gameSize = Math.min(words.length, 6);
-                const selection = [...words].sort(() => 0.5 - Math.random()).slice(0, gameSize);
-                const deck = [];
-                selection.forEach(w => {
-                    deck.push({ id: `${w.id}-eng`, wordId: w.id, text: w.eng, type: 'eng' });
-                    deck.push({ id: `${w.id}-heb`, wordId: w.id, text: w.heb, type: 'heb' });
-                });
-                setCards(deck.sort(() => 0.5 - Math.random()));
-            }, []);
-
-            const handleFlip = (card) => {
-                if (flipped.length === 2 || flipped.includes(card.id) || matched.includes(card.wordId)) return;
-                const newFlipped = [...flipped, card.id];
-                setFlipped(newFlipped);
-                if (newFlipped.length === 2) {
-                    const c1 = cards.find(c => c.id === newFlipped[0]);
-                    const c2 = cards.find(c => c.id === newFlipped[1]);
-                    if (c1.wordId === c2.wordId) {
-                        setMatched([...matched, c1.wordId]);
-                        setFlipped([]);
-                        onSpeak(c1.type === 'eng' ? c1.text : c2.text);
-                    } else setTimeout(() => setFlipped([]), 1000);
-                }
-            };
-
-            return (
-                <div className="flex flex-col flex-grow">
-                    <header className="flex justify-between items-center mb-4">
-                        <button onClick={onBack} className="text-sky-500 font-bold">← ביטול</button>
-                        <span className="font-black opacity-40">{matched.length} / {cards.length/2}</span>
-                    </header>
-                    <div className="grid grid-cols-3 gap-2 flex-grow items-center">
-                        {cards.map(card => {
-                            const isFlipped = flipped.includes(card.id) || matched.includes(card.wordId);
-                            return (
-                                <div key={card.id} className="aspect-square perspective cursor-pointer" onClick={() => handleFlip(card)}>
-                                    <div className={`relative w-full h-full preserve-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                        <div className={`absolute inset-0 rounded-lg border flex items-center justify-center backface-hidden shadow-sm ${isDark ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-white border-sky-100 text-sky-200'}`}>?</div>
-                                        <div className={`absolute inset-0 rounded-lg border flex items-center justify-center rotate-y-180 backface-hidden shadow-inner text-[10px] md:text-xs text-center p-1 font-bold ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-sky-50 border-sky-200'}`}>
-                                            {card.text}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                    {matched.length === cards.length/2 && cards.length > 0 && (
-                        <button onClick={onBack} className="mt-4 bg-sky-500 text-white py-4 rounded-xl font-black">מעולה! חזרה לתפריט</button>
-                    )}
                 </div>
             );
         };
@@ -260,10 +213,22 @@
             const [savedLists, setSavedLists] = useState([]);
             const [failedScore, setFailedScore] = useState(0);
 
+            // Sync body background with dark mode to prevent white areas
             useEffect(() => {
-                const unsub = auth.onAuthStateChanged(u => {
-                    if (u) setUser(u);
-                    else auth.signInAnonymously();
+                document.body.style.backgroundColor = isDarkMode ? "#020617" : "#f0f9ff";
+            }, [isDarkMode]);
+
+            useEffect(() => {
+                const unsub = auth.onAuthStateChanged(async (u) => {
+                    if (u) {
+                        setUser(u);
+                    } else {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await auth.signInWithCustomToken(__initial_auth_token).catch(() => auth.signInAnonymously());
+                        } else {
+                            await auth.signInAnonymously();
+                        }
+                    }
                 });
                 return () => unsub();
             }, []);
@@ -271,7 +236,7 @@
             useEffect(() => {
                 if (!user) return;
                 const unsub = db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('wordLists')
-                    .onSnapshot(snap => setSavedLists(snap.docs.map(d => ({...d.data(), id: d.id}))));
+                    .onSnapshot(snap => setSavedLists(snap.docs.map(d => ({...d.data(), id: d.id}))), err => console.error(err));
                 return () => unsub();
             }, [user]);
 
@@ -284,62 +249,90 @@
                 if (parsed.length) { setWordList(parsed); setView('learning'); }
             };
 
+            const saveList = async () => {
+                if (!user || wordList.length === 0) return;
+                const name = prompt("תן שם לרשימה:");
+                if (name) {
+                    await db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('wordLists').add({
+                        name,
+                        words: wordList,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            };
+
             return (
-                <div className={`${isDarkMode ? 'bg-slate-950 text-white' : 'bg-sky-50 text-slate-900'} app-height transition-colors p-4 md:p-6 flex flex-col`}>
+                <div className={`min-h-screen transition-colors duration-300 p-4 md:p-6 flex flex-col ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-sky-50 text-slate-900'}`}>
                     <div className="w-full max-w-md mx-auto flex flex-col flex-grow">
-                        <header className="relative flex justify-center items-center h-12 mb-4">
-                            <h1 className={`text-2xl font-black transition-colors ${isDarkMode ? 'text-yellow-400' : 'text-sky-500'}`}>
+                        <header className="relative flex justify-center items-center h-12 mb-6">
+                            <h1 className={`text-2xl font-black tracking-tight transition-colors ${isDarkMode ? 'text-yellow-400' : 'text-sky-500'}`}>
                                 English Magic
                             </h1>
                             <button 
                                 onClick={() => setIsDarkMode(!isDarkMode)} 
-                                className={`absolute left-0 w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-90 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-yellow-400' : 'bg-white border-sky-100 text-indigo-600'}`}
+                                className={`absolute left-0 w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-90 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-yellow-400' : 'bg-white border-sky-100 text-indigo-600'}`}
                             >
                                 {isDarkMode ? <Icons.Sun /> : <Icons.Moon />}
                             </button>
                         </header>
 
                         {view === 'setup' && (
-                            <div className="space-y-4 flex-grow flex flex-col">
-                                <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-4 rounded-2xl shadow-xl border-2 flex flex-col`}>
-                                    <textarea id="word-input" className={`w-full h-32 p-3 rounded-xl border-2 outline-none text-left font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-sky-50 border-sky-100'}`} dir="ltr" placeholder="Apple - תפוח..."></textarea>
-                                    <button onClick={startApp} className="w-full bg-sky-500 text-white py-4 rounded-xl font-black text-xl shadow-lg mt-4 active:scale-95">התחל ללמוד</button>
+                            <div className="space-y-6 flex-grow flex flex-col">
+                                <div className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-5 rounded-3xl shadow-xl border-2 flex flex-col transition-all`}>
+                                    <label className="text-sm font-bold opacity-60 mb-2 mr-1">הזן מילים (אנגלית - עברית):</label>
+                                    <textarea 
+                                        id="word-input" 
+                                        className={`w-full h-40 p-4 rounded-2xl border-2 outline-none text-left font-bold transition-all ${isDarkMode ? 'bg-slate-950 border-slate-800 focus:border-yellow-500' : 'bg-sky-50 border-sky-100 focus:border-sky-400'}`} 
+                                        dir="ltr" 
+                                        placeholder="Apple - תפוח&#10;Book - ספר"
+                                    ></textarea>
+                                    <button onClick={startApp} className="w-full bg-sky-500 hover:bg-sky-600 text-white py-4 rounded-2xl font-black text-xl shadow-lg mt-4 transition-all active:scale-95">התחל ללמוד</button>
                                 </div>
-                                <div className="space-y-2 overflow-y-auto">
-                                    {savedLists.map(list => (
-                                        <div key={list.id} onClick={() => { setWordList(list.words); setView('learning'); }} className={`${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'} p-3 rounded-xl shadow flex justify-between cursor-pointer border`}>
-                                            <span className="font-black">{list.name}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('wordLists').doc(list.id).delete(); }} className="text-red-400"><Icons.Trash /></button>
+                                
+                                {savedLists.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h3 className="font-black text-sm opacity-50 mr-1 uppercase tracking-wider">רשימות שמורות:</h3>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                            {savedLists.map(list => (
+                                                <div key={list.id} onClick={() => { setWordList(list.words); setView('learning'); }} className={`${isDarkMode ? 'bg-slate-900 border-slate-800 hover:bg-slate-800' : 'bg-white border-white hover:bg-sky-50'} p-4 rounded-2xl shadow-sm flex justify-between items-center cursor-pointer border transition-all`}>
+                                                    <span className="font-black">{list.name}</span>
+                                                    <button onClick={(e) => { e.stopPropagation(); db.collection('artifacts').doc(appId).collection('users').doc(user.uid).collection('wordLists').doc(list.id).delete(); }} className="text-red-400 p-2 hover:bg-red-50 rounded-lg transition-colors"><Icons.Trash /></button>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        {view === 'learning' && <Flashcards words={wordList} onFinish={() => setView('gate')} isDark={isDarkMode} />}
+                        {view === 'learning' && (
+                            <>
+                                <Flashcards words={wordList} onFinish={() => setView('gate')} isDark={isDarkMode} />
+                                <button onClick={saveList} className="mt-4 text-xs font-bold opacity-40 hover:opacity-100 transition-opacity">שמור רשימה זו לעתיד</button>
+                            </>
+                        )}
 
                         {view === 'gate' && <KnowledgeGate words={wordList} onPass={() => setView('games')} onFail={(s) => { setFailedScore(s); setView('gate-failed'); }} isDark={isDarkMode} />}
 
                         {view === 'gate-failed' && (
                             <div className="text-center flex-grow flex flex-col justify-center space-y-6">
-                                <div className="text-6xl">📉</div>
+                                <div className="text-6xl animate-bounce">📉</div>
                                 <h2 className="text-2xl font-black">קיבלת {Math.round(failedScore)}%</h2>
-                                <p className="opacity-70 font-bold">צריך לפחות 70% כדי לפתוח את המשחקים. כדאי לחזור על המילים שוב!</p>
-                                <button onClick={() => setView('learning')} className="w-full bg-sky-500 text-white py-4 rounded-xl font-black">חזרה ללימוד</button>
+                                <p className="opacity-70 font-bold px-4">לא נורא! כדאי לחזור על הלימוד עוד פעם אחת כדי לפתוח את המשחקים.</p>
+                                <button onClick={() => setView('learning')} className="w-full bg-sky-500 text-white py-4 rounded-2xl font-black shadow-lg">חזרה ללימוד</button>
                             </div>
                         )}
 
                         {view === 'games' && (
-                            <div className="flex flex-col flex-grow justify-center space-y-4">
-                                <div className="text-center p-6 bg-green-500 rounded-3xl text-white shadow-lg animate-bounce">
-                                    <h2 className="text-2xl font-black italic">עברת את המבחן! 🎉</h2>
+                            <div className="flex flex-col flex-grow justify-center space-y-6">
+                                <div className="text-center p-8 bg-green-500 rounded-[2rem] text-white shadow-xl transform -rotate-2">
+                                    <h2 className="text-3xl font-black italic">עברת! 🏆</h2>
+                                    <p className="font-bold opacity-90 mt-1">עכשיו הזמן לכיף</p>
                                 </div>
-                                <button onClick={() => setView('memory')} className="bg-indigo-600 p-10 rounded-3xl text-white font-black text-2xl shadow-xl active:scale-95">זיכרון 🧠</button>
-                                <button onClick={() => setView('setup')} className="text-sky-500 font-bold text-center mt-4">בחירת רשימה אחרת</button>
+                                <button onClick={() => setView('setup')} className="bg-sky-500 text-white py-6 rounded-3xl font-black text-2xl shadow-xl active:scale-95 transition-all">משחק הזיכרון (בקרוב)</button>
+                                <button onClick={() => setView('setup')} className="text-sky-500 font-bold text-center mt-4 p-2 hover:underline">חזרה לתפריט ראשי</button>
                             </div>
                         )}
-
-                        {view === 'memory' && <MemoryGame words={wordList} onSpeak={speak} onBack={() => setView('games')} isDark={isDarkMode} />}
                     </div>
                 </div>
             );

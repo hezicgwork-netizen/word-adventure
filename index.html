@@ -14,7 +14,7 @@
             transition: background-color 0.3s; 
             overflow-x: hidden; 
             touch-action: manipulation; 
-            font-size: 1.1rem; /* Overall font size increase for elementary students */
+            font-size: 1.1rem;
         }
         
         .eng-text { font-family: 'Comic Neue', 'Arial', sans-serif; }
@@ -23,22 +23,24 @@
         body.night-mode { background-color: #1a202c !important; color: #ffffff !important; }
         .night-mode .bg-white { background-color: #2d3748 !important; color: #ffffff !important; }
         .night-mode .text-black { color: #ffffff !important; }
-        .night-mode .text-gray-600 { color: #cbd5e0 !important; }
-        .night-mode .text-gray-700 { color: #f6e05e !important; } 
         
-        /* Fixed contrast for instructions in Night Mode */
+        /* Contrast for instructions in Night Mode */
         .night-mode .bg-blue-100 { background-color: #2c5282 !important; border-color: #4a5568 !important; }
         .night-mode .text-blue-800 { color: #f6e05e !important; }
 
-        /* Night mode yellow text for main UI titles */
+        /* Night mode titles */
         .night-mode .text-blue-600, 
         .night-mode .text-blue-800,
         .night-mode h1.text-blue-600,
         .night-mode h2.text-blue-600 { color: #f6e05e !important; }
         
-        .night-mode .border-gray-200 { border-color: #4a5568 !important; }
-        .night-mode button:not(.bg-blue-600):not(.bg-green-500):not(.bg-orange-500):not(.quiz-btn):not(.memory-action-btn) { color: #ffffff; }
         .night-mode textarea { background-color: #1a202c !important; color: #ffffff !important; border-color: #4a5568 !important; }
+
+        /* Specific fix for Connect 4 answers hover in Night Mode */
+        .night-mode .c4-ans-btn:hover { 
+            background-color: #e2e8f0 !important; 
+            color: #000000 !important; 
+        }
 
         #app { padding-top: 10px; }
 
@@ -55,16 +57,8 @@
             backface-visibility: hidden; border-radius: 1.5rem; 
             display: flex; align-items: center; justify-content: center; 
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 8px;
-            overflow: hidden;
         }
         .card-back { transform: rotateY(180deg); }
-
-        /* Memory Game */
-        .memory-text {
-            text-align: center; width: 100%; word-wrap: break-word;
-            line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical; overflow: hidden;
-        }
 
         /* Connect 4 */
         .c4-board {
@@ -86,7 +80,7 @@
         .wrong-ans { background-color: #ef4444 !important; color: white !important; }
 
         .speaker-btn { background: transparent; border: none; cursor: pointer; padding: 4px; border-radius: 50%; transition: transform 0.2s; }
-        .speaker-btn:hover { transform: scale(1.1); background-color: rgba(0,0,0,0.05); }
+        .speaker-btn:hover { transform: scale(1.1); }
 
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -155,17 +149,13 @@
                     <div class="bg-white p-6 rounded-[2rem] border-4 border-blue-200 shadow-xl text-center space-y-4 overflow-hidden">
                         <p class="text-3xl font-bold text-blue-800 border-b-2 border-blue-100 pb-2">ברוכים הבאים!</p>
                         <p class="text-xl font-medium">הצטרפו להרפתקת למידה של מילים חדשות באנגלית.</p>
-                        
                         <div class="space-y-4 text-lg py-1">
                             <p>1. מדביקים רשימת מילים מהמורה.</p>
-                            <p>2. מתרגלים עם כרטיסיות (אל תדלגו!).</p>
+                            <p>2. מתרגלים עם כרטיסיות.</p>
                             <p>3. עוברים את האתגר ופותחים משחקים.</p>
                         </div>
-                        <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-100">
-                             <p class="text-lg font-bold text-purple-700">מחכים לכם משחקי זיכרון ו-4 בשורה!</p>
-                        </div>
                     </div>
-                    <button onclick="state.screen='input'; render()" class="bg-blue-600 text-white px-8 py-5 rounded-full text-2xl font-bold w-full shadow-lg transition-all active:scale-95">שנתחיל? 🚀</button>
+                    <button onclick="state.screen='input'; render()" class="bg-blue-600 text-white px-8 py-5 rounded-full text-2xl font-bold w-full shadow-lg active:scale-95">שנתחיל? 🚀</button>
                 </div>`;
         }
 
@@ -178,7 +168,6 @@
                         הקפידו על מקף (-) בין האנגלית לתרגום.
                     </div>
                     <button onclick="processInput()" class="bg-blue-600 text-white px-8 py-5 rounded-full text-2xl font-bold w-full shadow-lg active:scale-95">התחל ללמוד! 🚀</button>
-                    <button onclick="state.screen='welcome'; render()" class="text-gray-400 text-sm underline block mx-auto">חזרה להוראות</button>
                 </div>`;
             document.getElementById('wordInput').oninput = (e) => state.inputText = e.target.value;
         }
@@ -229,7 +218,6 @@
             if (!state.quizOptions) {
                 state.quizOptions = shuffle([cur.heb, ...shuffle(state.words.filter(x=>x.id!==cur.id).map(x=>x.heb)).slice(0,3)]);
             }
-
             app.innerHTML = `
                 <div class="text-center space-y-4 w-full max-w-sm px-2 mt-2">
                     <h2 class="text-xl font-bold text-blue-600">אתגר המילים (${state.quizIndex + 1}/${state.words.length})</h2>
@@ -274,11 +262,9 @@
                             ${isLocked?'דרוש 70% לפתיחת המשחקים':'כל הכבוד! המשחקים פתוחים'}
                         </div>
                     </div>
-                    <button onclick="${isLocked?'':'startMemory()'}" class="p-6 bg-purple-500 text-white rounded-[2rem] text-2xl font-bold w-full shadow-lg active:scale-95 transition-transform hover:scale-102 ${isLocked?'opacity-50 grayscale':''}">משחק זיכרון 🧠</button>
-                    <button onclick="${isLocked?'':'startC4()'}" class="p-6 bg-blue-500 text-white rounded-[2rem] text-2xl font-bold w-full shadow-lg active:scale-95 transition-transform hover:scale-102 ${isLocked?'opacity-50 grayscale':''}">4 בשורה 🔴🟡</button>
-                    
+                    <button onclick="${isLocked?'':'startMemory()'}" class="p-6 bg-purple-500 text-white rounded-[2rem] text-2xl font-bold w-full shadow-lg active:scale-95 ${isLocked?'opacity-50 grayscale':''}">משחק זיכרון 🧠</button>
+                    <button onclick="${isLocked?'':'startC4()'}" class="p-6 bg-blue-500 text-white rounded-[2rem] text-2xl font-bold w-full shadow-lg active:scale-95 ${isLocked?'opacity-50 grayscale':''}">4 בשורה 🔴🟡</button>
                     <div class="flex flex-col gap-4 mt-6 border-t-2 border-blue-100 pt-6">
-                        <button onclick="state.words.forEach(w=>w.known=false); state.screen='flashcards'; render()" class="text-blue-600 font-bold text-lg underline">חזרה לתרגול</button>
                         <button onclick="resetAllData()" class="text-red-500 font-bold text-lg underline">הזנת רשימה חדשה</button>
                     </div>
                 </div>`;
@@ -299,7 +285,7 @@
             app.innerHTML = `
                 <div class="flex flex-col items-center w-full px-2 mt-2">
                     <div class="flex justify-between items-center w-full max-w-sm mb-4 bg-white p-4 rounded-2xl border shadow-md">
-                        <button onclick="state.screen='menu'; render()" class="text-red-500 font-bold text-lg px-2">יציאה</button>
+                        <button onclick="state.screen='menu'; render()" class="text-red-500 font-bold text-lg">יציאה</button>
                         <span class="text-lg font-bold text-black">צעדים: ${g.steps} | זוגות: ${g.pairs}</span>
                     </div>
                     <div class="grid grid-cols-4 gap-2 w-full max-w-sm">
@@ -308,14 +294,13 @@
                                 <div class="card-inner">
                                     <div class="card-front bg-purple-600 text-white text-3xl font-bold">?</div>
                                     <div class="card-back bg-white border-2 ${c.ok?'border-green-400 bg-green-50':'border-purple-200'}">
-                                        <div class="memory-text text-black font-bold text-sm ${c.isEng ? 'eng-text' : ''}">${c.t}</div>
+                                        <div class="text-black font-bold text-sm ${c.isEng ? 'eng-text' : ''}">${c.t}</div>
                                     </div>
                                 </div>
                             </div>`).join('')}
                     </div>
                 </div>`;
             if (g.pairs > 0 && g.pairs === g.cards.length/2) {
-                if (g.steps < g.bestScore) g.bestScore = g.steps;
                 setTimeout(() => { triggerConfetti(); state.winner = { type: 'memory', msg: `ניצחת ב-${g.steps} צעדים!` }; render(); }, 600);
             }
         }
@@ -351,11 +336,9 @@
                         <button onclick="state.screen='menu'; render()" class="text-red-500 font-bold text-lg">יציאה</button>
                         <div class="font-bold text-black text-lg">תור: ${c.turn===1?'אדום 🔴':'צהוב 🟡'}</div>
                     </div>
-                    
                     <div class="h-12 mb-2 flex items-center">
                         ${c.showQuestionPrompt ? `<button onclick="state.connect4.showQuestionPrompt=false; render(); speak('${c.q.eng}')" class="bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg">שאלה לאסימון</button>` : `<div class="text-blue-600 font-bold text-xl animate-pulse">בחר עמודה 👇</div>`}
                     </div>
-
                     <div class="c4-container">
                         <div class="arrows-row">
                             ${[0,1,2,3,4,5,6].map(i => `<button onclick="dropC4(${i})" class="w-full text-center text-2xl ${!c.canDrop || c.board[0][i] ? 'opacity-10 pointer-events-none' : 'text-blue-500'}">👇</button>`).join('')}
@@ -364,13 +347,12 @@
                             ${c.board.map((row, r) => row.map((cell, col) => `<div class="c4-slot">${cell ? `<div class="token-fixed ${cell===1?'bg-red-500':'bg-yellow-400'}"></div>` : ''}</div>`).join('')).join('')}
                         </div>
                     </div>
-
                     ${!c.canDrop && !c.showQuestionPrompt ? `
                         <div class="modal-overlay fixed inset-0 bg-black/70 flex items-center justify-center z-[200]">
                             <div class="bg-white p-8 rounded-[2.5rem] max-w-sm w-full text-center mx-4 border-4 border-blue-500 shadow-2xl">
                                 <h3 class="text-4xl font-bold mb-8 text-blue-600 eng-text">${c.q.prompt}</h3>
                                 <div class="grid gap-4">
-                                    ${c.q.opts.map(o => `<button onclick="ansC4('${o}')" class="p-5 border-2 rounded-2xl font-bold text-black text-2xl shadow-sm hover:bg-blue-50">${o}</button>`).join('')}
+                                    ${c.q.opts.map(o => `<button onclick="ansC4('${o}')" class="c4-ans-btn p-5 border-2 rounded-2xl font-bold text-black text-2xl shadow-sm hover:bg-blue-50 transition-colors">${o}</button>`).join('')}
                                 </div>
                             </div>
                         </div>` : ''}

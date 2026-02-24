@@ -40,33 +40,10 @@
             background-color: #1a202c !important;
         }
 
-        /* Neon Glow Classes */
-        .win-glow-emerald { 
-            box-shadow: 0 0 20px #fff, 0 0 40px #10b981, 0 0 60px #10b981, 0 0 80px #10b981 !important;
-            filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.8));
-        }
-
-        .win-glow-purple { 
-            box-shadow: 0 0 20px #fff, 0 0 40px #a855f7, 0 0 60px #a855f7, 0 0 80px #a855f7 !important;
-            filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.8));
-        }
-
-        .win-glow-red { 
-            box-shadow: 0 0 20px #fff, 0 0 40px #ef4444, 0 0 60px #ef4444, 0 0 80px #ef4444 !important;
-            filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.8));
-        }
-
-        .win-glow-yellow { 
-            box-shadow: 0 0 20px #fff, 0 0 40px #facc15, 0 0 60px #facc15, 0 0 80px #facc15 !important;
-            filter: drop-shadow(0 0 15px rgba(250, 204, 21, 0.8));
-        }
-
-        /* Night mode button override */
-        .night-mode .btn-menu-back {
-            background-color: #000 !important;
-            color: #facc15 !important;
-            border: 2px solid white !important;
-        }
+        .win-glow-emerald { box-shadow: 0 0 20px #fff, 0 0 40px #10b981, 0 0 60px #10b981 !important; }
+        .win-glow-purple { box-shadow: 0 0 20px #fff, 0 0 40px #a855f7, 0 0 60px #a855f7 !important; }
+        .win-glow-red { box-shadow: 0 0 20px #fff, 0 0 40px #ef4444, 0 0 60px #ef4444 !important; }
+        .win-glow-yellow { box-shadow: 0 0 20px #fff, 0 0 40px #facc15, 0 0 60px #facc15 !important; }
 
         /* Step styles */
         .night-mode .step-blue { background-color: #1e3a8a !important; border-color: #3b82f6 !important; }
@@ -91,27 +68,42 @@
         .token-red { background-color: #ef4444; }
         .token-yellow { background-color: #facc15; }
 
-        .correct-ans { background-color: #10b981 !important; color: white !important; }
-        .wrong-ans { background-color: #ef4444 !important; color: white !important; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-
-        /* Word Quest (Wordle Style) */
+        /* Word Quest (Wordle Style) - Colors and Glow */
         .word-quest-container { direction: ltr; }
-        .word-grid { display: grid; gap: 8px; margin: 10px auto; }
+        .word-grid { display: grid; gap: 12px; margin: 10px auto; }
         .word-cell { 
-            width: 42px; height: 42px; border: 2px solid #cbd5e1; border-radius: 8px;
+            width: 44px; height: 44px; 
+            border: 2px solid #cbd5e1; 
+            border-radius: 50%; 
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; font-weight: 800; text-transform: uppercase;
-            transition: all 0.3s;
+            font-size: 1.5rem; font-weight: 900; text-transform: uppercase;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
         }
-        @media (min-width: 640px) { .word-cell { width: 50px; height: 50px; } }
+        @media (min-width: 640px) { .word-cell { width: 56px; height: 56px; } }
         .night-mode .word-cell { border-color: #4a5568; }
-        .word-cell.correct { background-color: #10b981 !important; border-color: #10b981 !important; color: white !important; }
-        .word-cell.present { background-color: #f59e0b !important; border-color: #f59e0b !important; color: white !important; }
-        .word-cell.absent { background-color: #64748b !important; border-color: #64748b !important; color: white !important; }
-        
+
+        /* DAY MODE - Solid Fill */
+        body:not(.night-mode) .word-cell.correct { background-color: #38bdf8 !important; border-color: #0ea5e9 !important; color: white !important; }
+        body:not(.night-mode) .word-cell.present { background-color: #a855f7 !important; border-color: #9333ea !important; color: white !important; }
+        body:not(.night-mode) .word-cell.absent { background-color: #94a3b8 !important; border-color: #64748b !important; color: white !important; }
+
+        /* NIGHT MODE - Neon Glow & Bold */
+        .night-mode .word-cell.correct { 
+            background-color: #0ea5e9 !important; border-color: #7dd3fc !important; color: white !important;
+            box-shadow: 0 0 15px #0ea5e9, 0 0 5px #fff;
+            text-shadow: 0 0 5px rgba(255,255,255,0.8);
+            font-weight: 900;
+        }
+        .night-mode .word-cell.present { 
+            background-color: #9333ea !important; border-color: #d8b4fe !important; color: white !important;
+            box-shadow: 0 0 15px #9333ea, 0 0 5px #fff;
+            text-shadow: 0 0 5px rgba(255,255,255,0.8);
+            font-weight: 900;
+        }
+        .night-mode .word-cell.absent { background-color: #334155 !important; border-color: #475569 !important; color: #94a3b8 !important; }
+
+        /* Keyboard Styles */
         .qwerty-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 8px; width: 100%; }
         .key { 
             background: #e2e8f0; border: none; border-radius: 6px; padding: 15px 0; flex: 1;
@@ -119,10 +111,16 @@
             display: flex; align-items: center; justify-content: center; min-height: 55px;
         }
         .night-mode .key { background: #4a5568; color: white; }
-        .key.correct { background-color: #10b981 !important; color: white !important; }
-        .key.present { background-color: #f59e0b !important; color: white !important; }
-        .key.absent { background-color: #334155 !important; color: white !important; opacity: 0.6; }
+        .key.correct { background-color: #0ea5e9 !important; color: white !important; }
+        .key.present { background-color: #9333ea !important; color: white !important; }
+        .key.absent { background-color: #1e293b !important; opacity: 0.4; color: white !important; }
         .key-wide { flex: 1.6; font-size: 0.85rem; }
+
+        .correct-ans { background-color: #10b981 !important; color: white !important; }
+        .wrong-ans { background-color: #ef4444 !important; color: white !important; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
     </style>
 </head>
 <body class="bg-blue-50 text-gray-800 min-h-screen">
@@ -139,10 +137,10 @@
             screen: 'welcome', inputText: '', words: [],
             nightMode: false, masteryScore: 0, quizIndex: 0, correctAnswers: 0,
             quizFeedback: { index: -1, status: null },
-            memoryGame: { cards: [], flipped: [], pairs: 0, steps: 0, isProcessing: false, bestScore: 999 },
+            memoryGame: { cards: [], flipped: [], pairs: 0, steps: 0, isProcessing: false },
             connect4: { board: Array(6).fill(null).map(() => Array(7).fill(null)), turn: 1, q: null, canDrop: false, isAnswering: false, showQuestionPrompt: true, fallingToken: null },
             wordQuest: { 
-                target: '', hint: '', guesses: [], currentGuess: '', maxAttempts: 6, 
+                target: '', hint: '', guesses: [], currentGuess: '', maxAttempts: 5, 
                 isGameOver: false, keyStates: {}, showTutorial: true, 
                 roundIndex: 0, pool: [], completedCount: 0 
             },
@@ -276,13 +274,13 @@
                 </div>`;
         }
 
-        // --- Memory Logic ---
+        // Memory & Connect 4 logic shortened for brevity as they remain identical
         function startMemory() {
             state.screen = 'memory'; state.winner = null;
             const pairsCount = Math.min(state.words.length, 8);
             const cards = [];
             state.words.slice(0, pairsCount).forEach(w => { cards.push({ t: w.eng, m: w.heb, isEng: true, voice: w.eng }, { t: w.heb, m: w.eng, isEng: false, voice: w.eng }); });
-            state.memoryGame = { cards: shuffle(cards).map((c, i) => ({ ...c, id: i, f: false, ok: false })), flipped: [], pairs: 0, steps: 0, isProcessing: false, bestScore: 999 };
+            state.memoryGame = { cards: shuffle(cards).map((c, i) => ({ ...c, id: i, f: false, ok: false })), flipped: [], pairs: 0, steps: 0, isProcessing: false };
             render();
         }
         function renderMemory(app) {
@@ -314,14 +312,13 @@
                 g.isProcessing = true; const [c1, c2] = g.flipped;
                 if (c1.t === c2.m || c1.m === c2.t) {
                     setTimeout(() => { c1.ok = c2.ok = true; g.pairs++; g.flipped = []; g.isProcessing = false;
-                        if (g.pairs >= g.cards.length / 2) { triggerConfetti(); state.winner = { type: 'memory', msg: 'מעולה!', subMsg: `סיימת ב-${g.steps} צעדים.`, extraMsg: 'רוצה לנסות שוב בפחות צעדים?', glowClass: 'win-glow-purple' }; }
+                        if (g.pairs >= g.cards.length / 2) { triggerConfetti(); state.winner = { type: 'memory', msg: 'מעולה!', subMsg: `סיימת ב-${g.steps} צעדים.`, glowClass: 'win-glow-purple' }; }
                         render(); speak(c1.isEng ? c1.t : c2.t);
                     }, 400);
                 } else { setTimeout(() => { c1.f = c2.f = false; g.flipped = []; g.isProcessing = false; render(); }, 1000); }
             }
         }
 
-        // --- Connect 4 Logic ---
         function startC4() {
             state.screen = 'connect4'; state.winner = null;
             state.connect4 = { board: Array(6).fill(null).map(() => Array(7).fill(null)), turn: 1, q: genC4Q(), canDrop: false, isAnswering: false, showQuestionPrompt: true, fallingToken: null };
@@ -373,166 +370,82 @@
             } return false;
         }
 
-        // --- Word Quest Logic ---
+        // --- Word Quest ---
         function startWordQuest() {
-            const pool = shuffle(state.words.filter(w => w.eng.length >= 2 && w.eng.length <= 10 && !w.eng.includes(' ')));
-            state.screen = 'wordquest'; 
-            state.winner = null;
-            state.wordQuest = { 
-                pool: pool,
-                roundIndex: 0,
-                completedCount: 0,
-                target: pool[0].eng.toLowerCase(), 
-                hint: pool[0].heb, 
-                guesses: [], 
-                currentGuess: '', 
-                maxAttempts: 6, 
-                isGameOver: false, 
-                keyStates: {}, 
-                showTutorial: true 
-            };
-            render();
-        }
-
-        function nextWordQuestRound() {
-            const w = state.wordQuest;
-            w.roundIndex++;
-            if (w.roundIndex >= w.pool.length) {
-                triggerConfetti();
-                state.winner = { 
-                    type: 'wordquest', 
-                    msg: 'ניצחון מוחלט! 🏆', 
-                    subMsg: `השלמת את כל ${w.pool.length} המילים בהצלחה!`, 
-                    glowClass: 'win-glow-emerald' 
-                };
-                render();
-                return;
-            }
-            const nextWord = w.pool[w.roundIndex];
-            w.target = nextWord.eng.toLowerCase();
-            w.hint = nextWord.heb;
-            w.guesses = [];
-            w.currentGuess = '';
-            w.keyStates = {};
-            w.isGameOver = false;
+            const pool = shuffle(state.words.filter(w => w.eng.length >= 2 && !w.eng.includes(' ')));
+            state.screen = 'wordquest'; state.winner = null;
+            state.wordQuest = { pool, roundIndex: 0, completedCount: 0, target: pool[0].eng.toLowerCase(), hint: pool[0].heb, guesses: [], currentGuess: '', maxAttempts: 5, isGameOver: false, keyStates: {}, showTutorial: true };
             render();
         }
 
         function renderWordQuest(app) {
             const w = state.wordQuest;
             if (w.showTutorial) {
-                app.innerHTML = `
-                    <div class="text-center space-y-6 w-full max-w-md animate-fade-in mt-6">
-                        <div class="bg-white p-8 rounded-[2.5rem] border-4 border-emerald-400 shadow-xl welcome-card">
-                            <h2 class="text-3xl font-black text-emerald-600 mb-6">איך משחקים? 🔐</h2>
-                            <div class="space-y-4 text-right">
-                                <p class="text-lg font-bold">עליכם לנחש את המילים האנגלית לפי הרמזים.</p>
-                                <p class="text-md font-bold text-blue-600">המשחק מסתיים רק כשתפתרו את כל הרשימה!</p>
-                                <div class="flex items-center gap-3"><div class="w-8 h-8 bg-green-500 rounded"></div> <p>אות נכונה ובמקום הנכון</p></div>
-                                <div class="flex items-center gap-3"><div class="w-8 h-8 bg-yellow-500 rounded"></div> <p>אות נכונה אך במקום הלא נכון</p></div>
-                                <div class="flex items-center gap-3"><div class="w-8 h-8 bg-gray-400 rounded"></div> <p>אות שלא קיימת במילה</p></div>
-                            </div>
-                            <button onclick="state.wordQuest.showTutorial=false; render();" class="mt-8 bg-emerald-600 text-white px-8 py-4 rounded-full text-xl font-black w-full shadow-lg">הבנתי, בואו נתחיל!</button>
-                        </div>
-                    </div>`;
+                app.innerHTML = `<div class="text-center space-y-6 w-full max-w-md animate-fade-in mt-6"><div class="bg-white p-8 rounded-[2.5rem] border-4 border-emerald-400 shadow-xl welcome-card"><h2 class="text-3xl font-black text-emerald-600 mb-6">איך משחקים? 🔐</h2><div class="space-y-4 text-right"><p class="text-lg font-bold">נחשו את המילה לפי הרמז.</p><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-[#38bdf8]"></div> <p>אות נכונה ובמקום (תכלת)</p></div><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-[#a855f7]"></div> <p>אות נכונה במקום הלא נכון (סגול)</p></div></div><button onclick="state.wordQuest.showTutorial=false; render();" class="mt-8 bg-emerald-600 text-white px-8 py-4 rounded-full text-xl font-black w-full shadow-lg">בואו נתחיל!</button></div></div>`;
                 return;
             }
-
             const wordLen = w.target.length;
-            let gridHtml = `<div class="word-grid" style="grid-template-columns: repeat(${wordLen}, 1fr); max-width: ${wordLen * 55}px;">`;
+            let gridHtml = `<div class="word-grid" style="grid-template-columns: repeat(${wordLen}, 1fr); max-width: ${wordLen * 65}px;">`;
             for (let i = 0; i < w.maxAttempts; i++) {
-                const guess = w.guesses[i];
+                const g = w.guesses[i];
                 for (let j = 0; j < wordLen; j++) {
-                    if (guess) {
-                        const status = getLetterStatus(guess.text, j, w.target);
-                        gridHtml += `<div class="word-cell ${status}">${guess.text[j]}</div>`;
-                    } else if (i === w.guesses.length && !w.isGameOver) {
-                        gridHtml += `<div class="word-cell border-blue-400">${w.currentGuess[j] || ''}</div>`;
-                    } else { gridHtml += `<div class="word-cell opacity-40"></div>`; }
+                    if (g) gridHtml += `<div class="word-cell ${getLetterStatus(g.text, j, w.target)}">${g.text[j]}</div>`;
+                    else if (i === w.guesses.length && !w.isGameOver) gridHtml += `<div class="word-cell border-blue-400">${w.currentGuess[j] || ''}</div>`;
+                    else gridHtml += `<div class="word-cell opacity-40"></div>`;
                 }
             }
             gridHtml += `</div>`;
-
-            app.innerHTML = `
-                <div class="flex flex-col items-center w-full px-2 mt-2 word-quest-container">
-                    <div class="w-full flex justify-between items-center mb-4 bg-white p-4 rounded-2xl shadow-md max-w-sm welcome-card" style="direction:rtl">
-                        <button onclick="state.screen='menu'; render()" class="text-red-500 font-black">יציאה</button>
-                        <div class="flex flex-col items-end">
-                            <div class="font-black text-lg text-emerald-600">רמז: ${w.hint}</div>
-                            <div class="text-xs font-bold text-gray-400">מילה ${w.roundIndex + 1} מתוך ${w.pool.length}</div>
-                        </div>
-                    </div>
-                    ${gridHtml}
-                    <div class="w-full max-w-md mt-6">${renderQwerty()}</div>
-                </div>`;
+            app.innerHTML = `<div class="flex flex-col items-center w-full px-2 mt-2 word-quest-container"><div class="w-full flex justify-between items-center mb-4 bg-white p-4 rounded-2xl shadow-md max-w-sm welcome-card" style="direction:rtl"><button onclick="state.screen='menu'; render()" class="text-red-500 font-black">יציאה</button><div class="flex flex-col items-end"><div class="font-black text-lg text-emerald-600">רמז: ${w.hint}</div><div class="text-xs font-bold text-gray-400">${w.roundIndex+1}/${w.pool.length} | ניסיון ${w.guesses.length+1}/${w.maxAttempts}</div></div></div>${gridHtml}<div class="w-full max-w-md mt-6">${renderQwerty()}</div></div>`;
         }
 
-        function getLetterStatus(guess, index, target) {
-            if (guess[index] === target[index]) return 'correct';
-            if (target.includes(guess[index])) return 'present';
+        function getLetterStatus(guess, idx, target) {
+            if (guess[idx] === target[idx]) return 'correct';
+            if (target.includes(guess[idx])) return 'present';
             return 'absent';
         }
 
         function renderQwerty() {
-            const rows = [ 
-                ['q','w','e','r','t','y','u','i','o','p'], 
-                ['a','s','d','f','g','h','j','k','l', '⌫'], 
-                ['z','x','c','v','b','n','m', 'ENTER'] 
-            ];
-            return rows.map(row => `<div class="qwerty-row">${row.map(key => {
-                let status = state.wordQuest.keyStates[key] || '';
-                let extra = (key === 'ENTER' || key === '⌫') ? 'key-wide !bg-blue-600 !text-white' : '';
-                return `<button onclick="handleKey('${key}')" class="key ${status} ${extra}">${key === 'ENTER' ? 'ENT' : key}</button>`;
-            }).join('')}</div>`).join('');
+            const rows = [['q','w','e','r','t','y','u','i','o','p'], ['a','s','d','f','g','h','j','k','l', '⌫'], ['z','x','c','v','b','n','m', 'ENTER']];
+            return rows.map(r => `<div class="qwerty-row">${r.map(k => `<button onclick="handleKey('${k}')" class="key ${state.wordQuest.keyStates[k] || ''} ${k==='ENTER'||k==='⌫'?'key-wide !bg-blue-600 !text-white':''}">${k==='ENTER'?'ENT':k}</button>`).join('')}</div>`).join('');
         }
 
-        function handleKey(key) {
+        function handleKey(k) {
             const w = state.wordQuest; if (w.isGameOver) return;
-            if (key === '⌫') w.currentGuess = w.currentGuess.slice(0, -1);
-            else if (key === 'ENTER') { if (w.currentGuess.length === w.target.length) submitGuess(); }
-            else if (w.currentGuess.length < w.target.length && key.length === 1) w.currentGuess += key.toLowerCase();
+            if (k === '⌫') w.currentGuess = w.currentGuess.slice(0, -1);
+            else if (k === 'ENTER') { if (w.currentGuess.length === w.target.length) submitGuess(); }
+            else if (w.currentGuess.length < w.target.length && k.length === 1) w.currentGuess += k.toLowerCase();
             render();
         }
 
         function submitGuess() {
-            const w = state.wordQuest; const guessText = w.currentGuess; w.guesses.push({ text: guessText });
-            for (let i = 0; i < guessText.length; i++) {
-                const char = guessText[i]; const status = getLetterStatus(guessText, i, w.target);
-                if (w.keyStates[char] !== 'correct') w.keyStates[char] = status;
+            const w = state.wordQuest; const g = w.currentGuess; w.guesses.push({ text: g });
+            for (let i = 0; i < g.length; i++) {
+                const s = getLetterStatus(g, i, w.target); if (w.keyStates[g[i]] !== 'correct') w.keyStates[g[i]] = s;
             }
-            if (guessText === w.target) {
-                w.isGameOver = true; 
-                w.completedCount++;
-                triggerConfetti();
+            if (g === w.target) {
+                w.isGameOver = true; w.completedCount++; triggerConfetti();
                 setTimeout(() => { 
-                    nextWordQuestRound(); 
+                    w.roundIndex++; 
+                    if (w.roundIndex >= w.pool.length) { state.winner = { type:'wq', msg:'ניצחון!', subMsg:'סיימת הכל!', glowClass:'win-glow-emerald' }; }
+                    else { const next = w.pool[w.roundIndex]; w.target = next.eng.toLowerCase(); w.hint = next.heb; w.guesses = []; w.keyStates = {}; w.isGameOver = false; }
+                    render();
                 }, 1200);
             } else if (w.guesses.length >= w.maxAttempts) {
-                w.isGameOver = true;
-                setTimeout(() => { 
-                    state.winner = { 
-                        type: 'wordquest', 
-                        msg: 'לא נורא...', 
-                        subMsg: `המילה הייתה: ${w.target.toUpperCase()}. הצלחת לפענח ${w.completedCount} מילים לפני שנפסלת.`, 
-                        glowClass: 'win-glow-red' 
-                    }; 
-                    render(); 
-                }, 500);
+                w.isGameOver = true; setTimeout(() => { state.winner = { type:'wq', msg:'הפסד', subMsg:`המילה: ${w.target.toUpperCase()}`, glowClass:'win-glow-red' }; render(); }, 500);
             }
-            w.currentGuess = '';
+            w.currentGuess = ''; render();
         }
 
         function renderWinScreen(app) {
             const win = state.winner;
             app.innerHTML = `
                 <div class="fixed inset-0 flex items-center justify-center bg-black z-[300] px-4">
-                    <div class="text-center p-10 rounded-[3rem] max-w-sm w-full animate-fade-in win-card-base ${win.glowClass ? win.glowClass : ''}">
+                    <div class="text-center p-10 rounded-[3rem] max-w-sm w-full animate-fade-in win-card-base ${win.glowClass || ''}">
                         <h2 class="text-4xl font-black mb-6 text-blue-600">${win.msg}</h2>
-                        <p class="text-xl font-black mb-2 text-gray-700">${win.subMsg || ''}</p>
-                        ${win.extraMsg ? `<p class="text-lg font-bold text-emerald-600 mb-8">${win.extraMsg}</p>` : `<div class="mb-10"></div>`}
+                        <p class="text-xl font-black mb-10 text-gray-700">${win.subMsg || ''}</p>
                         <div class="space-y-4">
                             <button onclick="state.winner=null; if(state.screen==='memory')startMemory();else if(state.screen==='connect4')startC4();else startWordQuest();" class="bg-blue-600 text-white py-5 rounded-2xl text-2xl font-black w-full shadow-lg">שחק שוב 🔄</button>
-                            <button onclick="state.winner=null; state.screen='menu'; render()" class="bg-gray-100 text-gray-700 py-4 rounded-2xl text-xl font-black w-full shadow btn-menu-back">חזרה לתפריט 🏠</button>
+                            <button onclick="state.winner=null; state.screen='menu'; render()" class="bg-gray-100 text-gray-700 py-4 rounded-2xl text-xl font-black w-full shadow">חזרה לתפריט 🏠</button>
                         </div>
                     </div>
                 </div>`;
@@ -542,9 +455,7 @@
         document.getElementById('toggleNight').onclick = () => { state.nightMode = !state.nightMode; render(); };
         window.addEventListener('keydown', (e) => {
             if (state.screen === 'wordquest' && !state.wordQuest.showTutorial) {
-                if (e.key === 'Enter') handleKey('ENTER');
-                else if (e.key === 'Backspace') handleKey('⌫');
-                else if (/^[a-z]$/i.test(e.key)) handleKey(e.key.toLowerCase());
+                if (e.key === 'Enter') handleKey('ENTER'); else if (e.key === 'Backspace') handleKey('⌫'); else if (/^[a-z]$/i.test(e.key)) handleKey(e.key.toLowerCase());
             }
         });
         render();
